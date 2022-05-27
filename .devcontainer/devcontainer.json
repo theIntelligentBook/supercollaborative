@@ -1,0 +1,11 @@
+{
+    "name": "Doctacular codespace config",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "extensions": [
+        "scala-lang.scala",
+        "scalameta.metals"
+    ]
+  
+  }
