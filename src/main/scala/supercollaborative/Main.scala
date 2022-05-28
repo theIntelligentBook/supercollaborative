@@ -1,4 +1,4 @@
-package willscala
+package supercollaborative
 
 import com.wbillingsley.veautiful.html._
 import com.wbillingsley.veautiful.doctacular._
@@ -29,8 +29,7 @@ object Main {
     site.toc = site.Toc(
       "Home" -> site.HomeRoute,
       
-      "1. Version Control" -> site.Toc(
-      ),
+      "1. Version Control" -> versioncontrol.toc,
 
       "2. Containers and Virtual Machines" -> site.Toc(
 

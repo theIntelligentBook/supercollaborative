@@ -1,4 +1,4 @@
-package willscala
+package supercollaborative
 
 import com.wbillingsley.veautiful.html._
 import com.wbillingsley.veautiful.doctacular._

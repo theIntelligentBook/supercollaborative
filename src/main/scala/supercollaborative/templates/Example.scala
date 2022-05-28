@@ -1,11 +1,11 @@
-package willscala.templates
+package supercollaborative.templates
 
 import com.wbillingsley.veautiful.html.{Styling, VHtmlNode, VHtmlComponent, <, ^}
 import scala.concurrent.{Future, ExecutionContext}
 import ExecutionContext.Implicits.global
 
-import willscala.given
-import willscala.Common.marked
+import supercollaborative.given
+import supercollaborative.Common.marked
 
 case class FileLoader(f:String) extends VHtmlComponent {
 

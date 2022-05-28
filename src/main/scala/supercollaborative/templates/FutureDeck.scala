@@ -1,4 +1,4 @@
-package willscala.templates
+package supercollaborative.templates
 
 import scala.util.{Try, Success, Failure}
 import scala.concurrent.Future
@@ -10,8 +10,8 @@ import com.wbillingsley.veautiful.doctacular.DeckPlayer
 import com.wbillingsley.handy.Latch
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import willscala.given
-import willscala.Common.{marked, chapterHeading}
+import supercollaborative.given
+import supercollaborative.Common.{marked, chapterHeading}
 
 case class FutureComp[T](future:Future[T])(f: T => VHtmlNode) extends VHtmlComponent with Morphing(f) {
   if !future.isCompleted then future.onComplete { _ => rerender() }

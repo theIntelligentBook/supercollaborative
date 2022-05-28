@@ -1,4 +1,4 @@
-package willscala.templates
+package supercollaborative.templates
 
 import com.wbillingsley.veautiful.DiffNode
 import com.wbillingsley.veautiful.html.{<, VHtmlComponent, ^}

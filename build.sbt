@@ -20,6 +20,8 @@ libraryDependencies ++= Seq(
   "com.github.wbillingsley.veautiful" %%% "doctacular" % "v0.3-SNAPSHOT",
 
   "com.github.wbillingsley.handy" %%% "handy" % "v0.11-SNAPSHOT", // For Latch[T]
+
+  "org.scalameta" %%% "munit" % "0.7.29" % Test
 )
 
 val deployScript = taskKey[Unit]("Copies the fullOptJS script to deployscripts/")
