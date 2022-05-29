@@ -5,6 +5,7 @@
     "yarn": "^1.22.17"
   },
   "dependencies": {
+    "codejar": "^3.6.0",
     "marked": "^4.0.4",
     "mermaid": "^9.0.1"
   }

@@ -9,6 +9,42 @@ import org.scalajs.dom
 
 import gitsim._
 
+val moray = """Ye Hielan's an' ye Lowlan's
+O, where have ye been?
+They hae slain the Earl of Moray
+And lain him on the green.
+"""
+
+val mondegreen = """Ye Hielan's an' ye Lowlan's
+O, where have ye been?
+They hae slain the Earl of Moray
+And Lady Mondegreen.
+"""
+
+val sheridan = """Mrs. MALAPROP
+But the point we would request of you is, that you will promise to forget 
+this fellow -- to illiterate him, I say, quite from your memory.
+
+LYDIA
+O patience! -- Do, ma'am, for Heaven's sake! tell us what is the matter?
+
+Mrs. MALAPROP
+Why, murder's the matter! slaughter's the matter! killing's the
+matter! -- but he can tell you the perpendiculars.
+"""
+
+val sheridanFixed = """Mrs. MALAPROP
+But the point we would request of you is, that you will promise to forget 
+this fellow -- to obliterate him, I say, quite from your memory.
+
+LYDIA
+O patience! -- Do, ma'am, for Heaven's sake! tell us what is the matter?
+
+Mrs. MALAPROP
+Why, murder's the matter! slaughter's the matter! killing's the
+matter! -- but he can tell you the particulars.
+"""
+
 /** A little example showing how code goes through broken states */
 case class BreakingChangePlayer() extends VHtmlComponent {
 
@@ -71,12 +107,10 @@ case class BreakingChangePlayer() extends VHtmlComponent {
 
 }
 
-val textFiles = File.Tree(Map(
-  "moray.txt" -> File.TextFile("Bla bla"),
-  "malaprop.txt" -> File.TextFile("Promise to forget him. To illiterate him, I say, quite from your memory")
+val example1 = File.Tree(Map(
+  "moray.txt" -> File.TextFile(moray),
+  "rivals.txt" -> File.TextFile(sheridanFixed)
 ))
-
-val example1 = textFiles.toMutable
 
 val vcDeck = DeckBuilder(1920, 1080)
   .markdownSlide("# Version Control").withClass("center middle")
@@ -115,8 +149,21 @@ val vcDeck = DeckBuilder(1920, 1080)
     Common.marked("""
     |## The working tree
     |
+    |Version control systems typically work with files. They don't know the files contain code.
+    |
     |Suppose this is the directory we're putting under version control
+    |
     |""".stripMargin),
-    TreeViewer(example1)
+    TreeViewer(example1, 300),
+    Common.marked("""
+    |Let's call this the *working tree*. This working tree is your files on disk that we're going to take snapshots of.
+    |
+    |We're going to use a couple of literary devices as an example, rather than code:
+    |
+    |* A mondegreen is something misheard as something else.
+    |* A malapropism is a comical use of an inappropriate word.
+    |
+    |So, let's introduce a new *version* of our files that introduces a mondegreen and a malapropopism.
+    |""".stripMargin),
   ))
   .renderSlides
