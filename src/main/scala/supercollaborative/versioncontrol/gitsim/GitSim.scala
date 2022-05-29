@@ -55,8 +55,8 @@ sealed trait File extends Obj:
   def toMutable: MutableFile
 
 object File:
-  case class TextFile(s:String) extends File:
-    def toMutable = MutableFile.TextFile(s)
+  case class TextFile(text:String) extends File:
+    def toMutable = MutableFile.TextFile(text)
 
   case class BinaryFile(arr:Array[Int]) extends File:
     def toMutable = MutableFile.BinaryFile(arr.clone)  
