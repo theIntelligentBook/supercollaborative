@@ -112,6 +112,17 @@ val example1 = File.Tree(Map(
   "rivals.txt" -> File.TextFile(sheridanFixed)
 ))
 
+val example2 = File.Tree(Map(
+  "moray.txt" -> File.TextFile(mondegreen),
+  "rivals.txt" -> File.TextFile(sheridan)
+))
+
+val gitExample = Git.init
+  .addAll(example1)
+  .commit("Algernon Moncrieff", "Initial revision", 1)
+  .addAll(example2)
+  .commit("Algernon Moncrieff", "Added some literary devices", 2)
+
 val vcDeck = DeckBuilder(1920, 1080)
   .markdownSlide("# Version Control").withClass("center middle")
   .veautifulSlide(<.div(
@@ -164,6 +175,18 @@ val vcDeck = DeckBuilder(1920, 1080)
     |* A malapropism is a comical use of an inappropriate word.
     |
     |So, let's introduce a new *version* of our files that introduces a mondegreen and a malapropopism.
+    |""".stripMargin),
+  ))
+  .veautifulSlide(<.div(
+    Common.marked("""
+    |## A history of revisions
+    |
+    |Below we have our directory under version control with two *commits* or *revisions*.
+    |
+    |""".stripMargin),
+    HorizontalBranchAndTree(gitExample.branches("main"), 300),
+    Common.marked("""
+    |
     |""".stripMargin),
   ))
   .renderSlides

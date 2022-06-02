@@ -44,9 +44,44 @@ def longestCommonSubsequence[T](left:Seq[T], right:Seq[T]):Seq[T] = {
     (for (b, (l, _)) <- path if b yield left(l - 1)).reverse
 }
 
+// Takes a list of commits and sorts them to show in a git graph
+def temporalTopological(toAdd:Seq[Commit], sorted:Seq[Commit] = Seq.empty):Seq[Commit] = 
+  toAdd.sortBy(_.time) match { // TODO: is this sorted the right way?
+    case Nil => sorted
+    case h :: t => temporalTopological(t ++ h.parents.filter(!sorted.contains(_)), sorted :+ h)
+  }
+
+
+// If the commit graph is vertical, tries to work out the horizontal positioning of commits
+def layout(commits:Seq[Commit], laidOut:List[(Commit, Int)] = Nil, active:Seq[Commit] = Seq.empty):Seq[(Commit, Int)] = {
+  commits match {
+    case Nil => laidOut.reverse
+    case h :: t if active.contains(h) =>
+      val x = active.indexOf(h) 
+      val lo = (h, x) :: laidOut
+      val parents = h.parents.filterNot(active.contains(_))
+      val newActive = active.take(x) ++ parents ++ active.drop(x + 1)
+      layout(t, lo, newActive)
+    case h :: t =>
+      val x = active.length
+      val lo = (h, x) :: laidOut
+      val parents = h.parents.filterNot(active.contains(_))
+      val newActive = active ++ parents
+      layout(t, lo, newActive)
+  }
+
+}
+
+def layoutRefs(refs:Seq[Ref]):Seq[(Commit, Int)] = {
+  val commits = temporalTopological(refs.map(_.commit))
+  layout(commits)
+}
+
 
 enum GitException extends Throwable:
   case AlreadyExists
+  case FileException(msg:String)
+  case CommitException(msg:String)
 
 sealed trait Obj:
   def hash = this.hashCode.toHexString
@@ -66,6 +101,38 @@ object File:
       import scala.collection.mutable
       MutableFile.Tree(mutable.Map((for (n, f) <- files.toSeq yield (n, f.toMutable))*))
 
+    def find(path:List[String]):File = {
+      path match {
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:Tree => t.find(rest)
+            case _ => throw GitException.FileException("Not a directory: " + dir)
+          }
+        case f :: _ if files.contains(f) => files(f)
+        case _ => throw GitException.FileException("File not found")
+      }
+    }
+
+    def findPath(path:String):File = find(path.split("/").toList)
+
+    def add(path:List[String], f:File):Tree = {
+      path match {
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:Tree => t.add(rest, f)
+            case _ => throw GitException.FileException("Not a directory: " + dir)
+          }
+        case dir :: rest if rest.nonEmpty => Tree(files + (dir -> Tree(Map.empty).add(rest, f))) 
+        case name :: _ => Tree(files + (name -> f)) 
+        case _ => throw GitException.FileException("Tried to add without a path")
+      }
+    }
+
+    def addPath(path:String, tree:File.Tree):Tree = {
+      val p = path.split("/").toList
+      add(p, tree.find(p))
+    }
+
 
 sealed trait MutableFile:
   def toImmutable: File
@@ -83,13 +150,19 @@ object MutableFile {
     def toImmutable = File.BinaryFile(arr.clone)
 }
 
-case class Commit(parents: Seq[Commit], tree:File.Tree)(time: Int) extends Obj {
+case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:String, time:Int)extends Obj {
   // All the ancestors of this commit in a single Seq
   def ancestors:Seq[Commit] = parents.flatMap(_.ancestors) 
 
   def canFastForwardTo(other:Commit) = other.ancestors.contains(this)
 
   def behind(other:Commit) = this != other && (other.ancestors.toSet - ancestors.toSet).nonEmpty
+}
+
+object Commit {
+
+  val Empty = Commit(Seq.empty, File.Tree(Map.empty), "", "", 0)
+
 }
 
 def temporalPositionSort(start:Seq[Commit]) = {
@@ -124,6 +197,29 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
       case _ => false
     } then Failure(GitException.AlreadyExists) else this.copy(refs = refs + Ref.Branch(name, head.commit))
   }
+
+  def branches:Map[String, Ref.Branch] = (refs.collect { 
+    case b:Ref.Branch => b.name -> b
+  }).toMap
+
+  def addAll(t:File.Tree) = this.copy(index = t)
+
+  def commit(author:String, message:String, time:Int) = {
+    head match {
+      case Ref.Branch(name, c) => 
+        val newC = Commit(Seq(c), index, author, message, time)
+        this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC), index = File.Tree(Map.empty))
+      case _ => 
+        throw GitException.CommitException("Can't commit in this checkout state")
+    }
+  }
+
+
+}
+
+object Git {
+
+  def init = Git(Set.empty, Set(Ref.Branch("main", Commit.Empty)), Ref.Branch("main", Commit.Empty), Set.empty, File.Tree(Map.empty))
 
 
 }
