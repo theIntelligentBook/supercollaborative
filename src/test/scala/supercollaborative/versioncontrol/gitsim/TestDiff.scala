@@ -1,6 +1,6 @@
 package supercollaborative.versioncontrol.gitsim
 
-class DiffTest extends munit.FunSuite {
+class TestDiff extends munit.FunSuite {
 
   test("lcs") {
     assertEquals(longestCommonSubsequence("ello", "ollow").mkString, "llo")
