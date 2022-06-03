@@ -101,19 +101,29 @@ object File:
       import scala.collection.mutable
       MutableFile.Tree(mutable.Map((for (n, f) <- files.toSeq yield (n, f.toMutable))*))
 
-    def find(path:List[String]):File = {
+    /** The selectable paths within the tree */
+    def paths:List[List[String]] = 
+      for 
+        (n, f) <- files.toList.sortBy(_._1)
+        p <- f match {
+          case t:Tree => t.paths
+          case _ => List(Nil)
+        }
+      yield n :: p
+
+    def find(path:List[String]):Option[File] = {
       path match {
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.find(rest)
-            case _ => throw GitException.FileException("Not a directory: " + dir)
+            case _ => None
           }
-        case f :: _ if files.contains(f) => files(f)
-        case _ => throw GitException.FileException("File not found")
+        case f :: _ if files.contains(f) => Some(files(f))
+        case _ => None
       }
     }
 
-    def findPath(path:String):File = find(path.split("/").toList)
+    def findPath(path:String):Option[File] = find(path.split("/").toList)
 
     def add(path:List[String], f:File):Tree = {
       path match {
@@ -130,7 +140,7 @@ object File:
 
     def addPath(path:String, tree:File.Tree):Tree = {
       val p = path.split("/").toList
-      add(p, tree.find(p))
+      add(p, tree)
     }
 
 
