@@ -26,14 +26,14 @@ object CodeStyle {
     |
     |""".stripMargin
   ).modifiedBy(
-    " .history" -> "display: flex; flex-direction: column",
-    " .history .history-row" -> "border: none; text-align: left; background:none;",
+    //" .history" -> "display: flex; flex-direction: column",
+    " .history .history-row" -> "border: none; text-align: left; background:none; width: 100%; display: grid; grid-template-columns: 180px 300px 1fr 250px; align-items: center;",
     " .history .history-row.selected" -> "background: #cdf;",
     " .history .history-row:hover" -> "background: #def;",
     " .history .history-row .hash" -> "color: #555; font-family: monospace; margin-right: 10px;",
     " .history .history-row .author" -> "width: 300px; display: inline-flex; margin-right: 10px;",
     " .history .history-row .comment" -> "display: inline-flex; margin-right: 10px;",
-    " .history .history-row .date" -> "width: 200px; float: right; margin-left: -200px;",
+    " .history .history-row .date" -> "font-size: 24px;",
   ).register()
 
   val selectorAndViewer = Styling(
@@ -46,12 +46,15 @@ object CodeStyle {
       " .fileSelector.expander.expanded::before" -> "content: '▾'; padding-right: 5px;",
       " .fileSelector.expander.collapsed::before" -> "content: '▸'; padding-right: 5px;",
       " .fileSelector.textfile::before" -> "content: '≣'; padding-right: 5px;",
-      " .fileList" -> "width: 250px; display: flex; flex-direction: column; text-align: left; border-right: 1px solid #f0f0f0; background: white;",
+      " .fileList" -> "width: 350px; display: flex; flex-direction: column; text-align: left; border-right: 1px solid #f0f0f0; background: white; overflow-y: auto; overflow-x: hidden;",
       " .fileList .fileSelector " -> "background: none; border: none; text-align: left; padding: 0 5px; width: 100%;",
       " .fileList .fileSelector:hover " -> "background: #def;",
       " .fileList .fileSelector.selected " -> "background: #cdf;",
-      " .fileViewer" -> "padding: 5px; margin: 0; flex: auto;",
-      " .fileViewer.readOnly" -> "background: #f6f6f6;",
+      " .fileViewer" -> "padding: 5px; margin: 0; flex: auto; display: flex; flex-direction: column;",
+      " .fileViewer .viewer-breadcrumbs" -> "flex: 0; border-bottom: 1px solid #f0f0f0; font-size: 18px; padding: 3px; background: #fafafa;",
+      " .fileViewer .viewer-breadcrumbs .viewer-breadcrumb" -> "color: #444;",
+      " .fileViewer .viewer-breadcrumbs .divider" -> "color: #aaa;",
+      " .fileViewer.readOnly" -> "background: #f6f6f6; padding-bottom: 0;",
   ).register()
 
 }

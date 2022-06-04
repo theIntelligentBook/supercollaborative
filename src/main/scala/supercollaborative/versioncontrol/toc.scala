@@ -8,8 +8,11 @@ import site.given
 
 val toc:site.Toc = site.Toc(
   "Intro" -> site.addPage("versioncontrol", intro),
-  "Version Control" -> site.add("vcs",
+  "Keeping history" -> site.add("vcs-history",
     Alternative("Slides", Deck(() => vcDeck))
+  ),
+  "Diffs" -> site.add("vcs-diff",
+    Alternative("Slides", Deck(() => diffsDeck))
   )
 
 )

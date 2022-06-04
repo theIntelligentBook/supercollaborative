@@ -84,7 +84,9 @@ enum GitException extends Throwable:
   case CommitException(msg:String)
 
 sealed trait Obj:
-  def hash = this.hashCode.toHexString
+  def hash:String = 
+    val h = this.hashCode.toHexString
+    if h.length < 8 then Seq.fill(8 - h.length)("0").mkString + h else h
 
 sealed trait File extends Obj:
   def toMutable: MutableFile
@@ -133,7 +135,7 @@ object File:
             case _ => throw GitException.FileException("Not a directory: " + dir)
           }
         case dir :: rest if rest.nonEmpty => Tree(files + (dir -> Tree(Map.empty).add(rest, f))) 
-        case name :: _ => Tree(files + (name -> f)) 
+        case name :: _ => Tree(files.updated(name, f)) 
         case _ => throw GitException.FileException("Tried to add without a path")
       }
     }
@@ -160,7 +162,7 @@ object MutableFile {
     def toImmutable = File.BinaryFile(arr.clone)
 }
 
-case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:String, time:Int)extends Obj {
+case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:String, time:Double)extends Obj {
   // All the ancestors of this commit in a single Seq
   def ancestors:Seq[Commit] = parents.flatMap(_.ancestors) 
 
@@ -214,7 +216,7 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
 
   def addAll(t:File.Tree) = this.copy(index = t)
 
-  def commit(author:String, message:String, time:Int) = {
+  def commit(author:String, message:String, time:Double) = {
     head match {
       case Ref.Branch(name, c) => 
         val newC = Commit(Seq(c), index, author, message, time)
