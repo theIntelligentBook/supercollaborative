@@ -43,6 +43,17 @@ case class TreeViewer(tree:File.Tree, height: Int) extends VHtmlComponent {
 
 }
 
+def breadcrumbs(path:Seq[String]) = <.div(^.cls := "viewer-breadcrumbs", 
+  for 
+    (t, i) <- path.zipWithIndex 
+    el <- if i > 0 then Seq(
+      <.span(^.cls := "divider", " > "),
+      <.span(^.cls := "viewer-breadcrumb", t)
+    ) else Seq(
+      <.span(^.cls := "viewer-breadcrumb", t)
+    )
+  yield el
+)
 
 
 case class MorphingTreeSelector(path:Seq[String])(tree:File.Tree, selected:Seq[String], onSelect: Seq[String] => Unit) extends VHtmlComponent with Morphing(tree, selected, onSelect) {
@@ -88,9 +99,12 @@ case class MorphingTreeViewer()(tree:File.Tree, height: Int) extends VHtmlCompon
     selected = seq
     rerender()
 
-  def viewer(name:String, f:File) = f match {
+  def viewer(path:Seq[String], f:File) = f match {
     case f:File.TextFile => 
-      <.pre(^.cls := "fileViewer readOnly", f.text)
+      <.div(^.cls := "fileViewer",
+        breadcrumbs(path),
+        <.pre(^.cls := "readOnly", f.text)
+      )
     case _ => <.div()
   }
 
@@ -99,7 +113,7 @@ case class MorphingTreeViewer()(tree:File.Tree, height: Int) extends VHtmlCompon
       <.div(^.cls := "fileList", 
         MorphingTreeSelector(Seq.empty)(tree, selected, select(_)),
       ),
-      for f <- prop.find(selected.toList) yield viewer("", f)
+      for f <- prop.find(selected.toList) yield viewer(selected, f)
     )
   )
 

@@ -6,8 +6,24 @@ import supercollaborative.given
 import supercollaborative.Common
 import supercollaborative.templates.Animator
 import org.scalajs.dom
+import scalajs.js.Date
+import scala.util.Random
 
 import gitsim._
+
+def now = Date.now
+val t0 = new Date("2022-05-17T03:24:00")
+
+val day = 1000 * 60 * 60 * 24
+val h3 = 1000 * 60 * 60 * 3
+
+extension(d:Double) {
+  def minusDays(i:Int):Double = d - i * day
+
+  // Subtract i days, but not precisely to avoid the time looking identical
+  def minusDaysIsh(i:Int):Double = d - i * day + i * (1000 * 61.2 * 60.4 * 2)
+
+}
 
 val moray = """Ye Hielan's an' ye Lowlan's
 O, where have ye been?
@@ -117,14 +133,129 @@ val example2 = File.Tree(Map(
   "rivals.txt" -> File.TextFile(sheridan)
 ))
 
+val gitignore = File.Tree(Map(
+  "src" -> File.Tree(Map(
+    "scala" -> File.Tree(Map(
+      "main" -> File.Tree(Map(
+        "example" -> File.Tree(Map(
+          "HelloWorld.java" -> File.TextFile("""
+          |package example;
+          |
+          |public class HelloWorld {
+          |
+          |  public static void main(String[] args) {
+          |    System.out.println("Hello world");
+          |  }
+          |
+          |}
+          |""".stripMargin))
+        ))
+      ))
+    ))
+  ),
+  ".gitignore" -> File.TextFile("""
+    |# Compiled files
+    |*.class
+    |
+    |# Log files
+    |*.log
+    |
+    |# Maven/sbt output directory
+    |target
+    |dist
+    |
+    |# Temp database from running the code
+    |db_example
+    |
+    |# Mac
+    |*.DS_Store
+    |
+    |# IntelliJ
+    |.idea
+    |.idea_modules
+    |
+    |# Eclipse
+    |.cache
+    |.classpath
+    |*.swp
+    |.project
+    |.settings
+    |.target
+    |
+    |# Metals
+    |.bsp
+    |.metals
+    |.bloop
+    |metals.sbt
+    |
+    |# VSCode
+    |.vscode
+    |
+    |# Node
+    |node_modules/
+    |
+    |# Output directory from our own script
+    |packed/
+    """.stripMargin
+  )
+))
+
+val gitignore2 = gitignore.add(List(".gitignore"), File.TextFile("""
+  |# Compiled files
+  |*.class
+  |
+  |# Log files
+  |*.log
+  |
+  |# Temp directory
+  |tmp
+  |
+  |# Maven/sbt output directory
+  |target
+  |dist
+  |
+  |# Temp database from running the code
+  |db_example
+  |
+  |# Mac
+  |*.DS_Store
+  |
+  |# IntelliJ
+  |.idea
+  |.idea_modules
+  |
+  |# Eclipse
+  |.cache
+  |.classpath
+  |*.swp
+  |.project
+  |.settings
+  |.target
+  |
+  |# Metals
+  |.bsp
+  |.metals
+  |.bloop
+  |metals.sbt
+  |
+  |# VSCode
+  |.vscode
+  |
+  |# Node
+  |node_modules/
+  |
+  |# Output directory from our own script
+  |packed/""".stripMargin
+))
+
 val gitExample = Git.init
   .addAll(example1)
-  .commit("Algernon Moncrieff", "Initial revision", 1)
+  .commit("Algernon Moncrieff", "Initial revision", t0.getTime.minusDaysIsh(2))
   .addAll(example2)
-  .commit("Algernon Moncrieff", "Added some literary devices", 2)
+  .commit("Algernon Moncrieff", "Added some literary devices", t0.getTime.minusDaysIsh(1))
 
 val vcDeck = DeckBuilder(1920, 1080)
-  .markdownSlide("# Version Control").withClass("center middle")
+  .markdownSlide("# Version Control &mdash; Keeping history").withClass("center middle")
   .veautifulSlide(<.div(
     <.h1("Changes are discrete."),
     <.p("Whenever we edit programs, we break them. They don't become unbroken until we've finished making our change."),
@@ -182,7 +313,7 @@ val vcDeck = DeckBuilder(1920, 1080)
     BranchHistoryAndTree(
       Git.init
         .addAll(example1)
-        .commit("Algernon Moncrieff", "Initial revision", 1).branches("main")
+        .commit("Algernon Moncrieff", "Initial revision", t0.getTime.minusDaysIsh(2)).branches("main")
       , 300),
     Common.marked("""
     |Let's use a couple of literary devices as an example, rather than code:
@@ -304,5 +435,107 @@ val vcDeck = DeckBuilder(1920, 1080)
   |* `git log`
   |
   |This will show the summary comment, hash, author and time of commits, going backwards in time.
+  |
+  |---
+  |
+  |## What to put under version control
+  |
+  |In computer science, we like to keep a *"single source of truth"*.   |
+  |e.g. if a Java file has been edited, but it hasn't been recompiled to produce the class file, the
+  |definition in the Java source and the compiled class could differ.
+  |
+  |We usually want to keep the *source file* under version control and but *not* the compiled output.
+  |
+  |Git just deals in files, so doesn't normally know what's source and what's output.
+  |To control which files git *tracks*, we use a `.gitignore` file.
+  |
+  |We also don't want git to track:
+  |
+  |* transient files, e.g. log files, cache files, and files generated in the course of our work
+  |
+  |* configuration files that are personal to us. E.g. our IDE or editor settings files might contain
+  |  absolute filepaths that are unique to *our* computer and need to be different for our teammates'.
+  |
+  |The `.gitignore` file itself *is* usually tracked - it is the "single source of truth" for what git should ignore. 
+  |
+  |---
+  |
+  |## The `.gitignore` file
+  |
+  |`.gitignore` is a text file kept in the top directory of your working tree. 
+  |It contains patterns of paths that should be ignored (should not be tracked) by git
+  |
+  |Typically, we would ignore:
+  |
+  |* Compiled output, e.g. `*.class` files, or the `target/` directory of a build tool
+  |
+  |* IDE settings and other files that are about how our personal development environment is configured
+  |  that shouldn't be shared with our teammates (because theirs will be different)
+  |
+  |* Other files that might be generated by our tools or operating system. Log files, 
+  |  generated thumbnail images, cache files, etc.
+  |
+  |
   |""".stripMargin)
+  .veautifulSlide(<.div(
+    Common.marked(
+      """
+      |## The `.gitignore` file
+      |
+      |`.gitignore` is a text file kept in the top directory of your working tree. 
+      |It contains patterns of paths that should be ignored (should not be tracked) by git
+      |
+      |`.gitignore` itself is tracked by git, so you'll sometimes see commits updating `.gitignore`
+      |
+      |""".stripMargin
+    ),
+    BranchHistoryAndTree(
+      Git.init
+        .addAll(gitignore)
+        .commit("Algernon Moncrieff", "Initial revision", t0.getTime.minusDaysIsh(2))
+        .addAll(gitignore2)
+        .commit("Algernon Moncrieff", "Added tmp directory to .gitignore", t0.getTime.minusDaysIsh(1)).branches("main")
+      , 450)
+  ))
+  .veautifulSlide(<.div(
+    Common.marked("""
+    |## Time marches on
+    |
+    |Suppose we made a mistake in a commit and wanted to change it.
+    |
+    |Generally, we want time to go forwards in our repository. If we have shared a past commit with
+    |anyone else, we don't go back in time to alter the content of that commit.
+    |
+    |The commit hashes are generated from their content and metadata, so if we tried to alter a past
+    |commit, it would end up *being a different commit with a different commit hash*. This can
+    |cause all sorts of complications and problems if other people are working off our old commit.
+    |
+    |In the example below, we've run our git simulation's commit using *the time you loaded this site*.
+    |If we hit refresh in the browser, it'll get a different commit hash just because it was committed
+    |at a different time.
+    |
+    |""".stripMargin),
+    BranchHistoryAndTree(
+      Git.init
+      .addAll(example1)
+      .commit("Algernon Moncrieff", s"Committing our initial revision when you loaded the site", now)
+      branches("main"), 300),
+  ))
+  .veautifulSlide(<.div(
+    Common.marked("""
+    |## Reverting changes
+    |
+    |To undo a change while still going *forward* in time, we might introduce a new commit that *reverts* 
+    |the changes made in an old (mistaken) commit
+    |
+    |The `git revert` command can help calculate a commit to undo a change, but we might just do it manually.
+    |
+    |""".stripMargin),
+    BranchHistoryAndTree(
+      gitExample
+      .addAll(gitExample.head.commit.parents(0).tree)
+      .commit("Algernon Moncrieff", s"Reverted commit ${gitExample.head.commit.hash} (done just now)", now)
+      branches("main"), 300),
+  ))
+  .markdownSlide(Common.willCcBy).withClass("bottom")
   .renderSlides

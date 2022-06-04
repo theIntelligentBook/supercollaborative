@@ -3,6 +3,8 @@ package supercollaborative.versioncontrol.gitsim
 import com.wbillingsley.veautiful.html._
 import supercollaborative.templates._
 
+import scalajs.js.Date
+
 
 def HorizontalBranch(commits:Map[Commit, (Int, Int)], selected:Option[Commit])(f: Commit => Unit) = {
   <.svg(
@@ -31,7 +33,7 @@ case class BranchHistoryAndTree(branch:Ref.Branch, height: Int) extends VHtmlCom
         <.span(^.cls := "hash", c.hash),
         <.span(^.cls := "author", c.author),
         <.span(^.cls := "comment", c.comment),
-        <.span(^.cls := "date", c.time.toString),
+        <.span(^.cls := "date", (new Date(c.time)).toLocaleString),
       )
     ),
     MorphingTreeViewer()(selected.tree, height)
