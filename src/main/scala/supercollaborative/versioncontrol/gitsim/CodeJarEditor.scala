@@ -10,8 +10,11 @@ import scala.scalajs.js.annotation._
 
 @js.native
 @JSImport("codejar", "CodeJar")
-object Codejar extends js.Object:
-  def apply(element:HTMLElement):js.Dynamic = js.native
+object JSCodejar extends js.Object:
+  def apply(element:HTMLElement, highlight: js.Function):js.Dynamic = js.native
+
+object CodeJar:
+  def apply(element:HTMLElement)(highlight: js.Dynamic => Unit) = JSCodejar(element, highlight)
 
 case class CodeJarEditor(name:String)(val initialText:String) extends VHtmlNode {
 
@@ -25,7 +28,7 @@ case class CodeJarEditor(name:String)(val initialText:String) extends VHtmlNode 
 
     override def afterAttach():Unit = {
       for n <- domNode do
-        val editor = Codejar(n)
+        val editor = CodeJar(n) { _ => () }
       
     }
   

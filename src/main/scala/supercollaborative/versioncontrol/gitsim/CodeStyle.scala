@@ -57,4 +57,23 @@ object CodeStyle {
       " .fileViewer.readOnly" -> "background: #f6f6f6; padding-bottom: 0;",
   ).register()
 
+  val lcsViewer = Styling(
+    """margin: 20px;
+      |
+      |""".stripMargin
+    ).modifiedBy(
+      ".horizontal" -> "display: grid; grid-template-columns: 1fr 1fr",
+      ".horizontal .boxA" -> "border: 5px solid #f0f0f0; border-top-left-radius: 15px; border-bottom-left-radius: 15px; padding: 15px;",
+      ".horizontal .boxB" -> "border: 5px solid #f0f0f0; border-left: none; border-top-right-radius: 15px; border-bottom-right-radius: 15px; padding: 15px;",
+      ".vertical .boxA" -> "border: 5px solid #f0f0f0; border-top-left-radius: 15px; border-top-right-radius: 15px; padding: 15px;",
+      ".vertical .boxB" -> "border: 5px solid #f0f0f0; border-top: none; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; padding: 15px;",
+      " .both" -> "color: #444;",
+      " .left" ->  "color: #a44;",
+      " .right" ->  "color: #4a4;",
+      " .path" -> "stroke: #aaf; stroke-width: 3;",
+      " .path.left" -> "stroke: #a44; stroke-width: 5;",
+      " .path.right" -> "stroke: #4a4; stroke-width: 5;",
+      " .path.both" -> "stroke: #444; stroke-width: 5;",
+  ).register()
+
 }
