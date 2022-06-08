@@ -70,6 +70,10 @@ object CodeStyle {
       " .both" -> "color: #444;",
       " .left" ->  "color: #a44;",
       " .right" ->  "color: #4a4;",
+      " .path" -> "stroke: #aaf; stroke-width: 3;",
+      " .path.left" -> "stroke: #a44; stroke-width: 5;",
+      " .path.right" -> "stroke: #4a4; stroke-width: 5;",
+      " .path.both" -> "stroke: #444; stroke-width: 5;",
   ).register()
 
 }
