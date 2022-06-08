@@ -16,32 +16,79 @@ def longestCommonSubsequence[T](left:Seq[T], right:Seq[T]):Seq[T] = {
     val lRange = left.indices
     val rRange = right.indices
 
-    val matches:Map[Loc, Boolean] = (for 
-      i <- lRange
-      j <- rRange
-    yield (i, j) -> (left(i) == right(j))).toMap
+    val memo = scala.collection.mutable.Map((0,0) -> 0)
 
-    def nextLocs(path:Path):List[Path] = {
-      path match {
-        case (_, (x, y)) :: _ if lRange.contains(x) && rRange.contains(y) && matches((x, y)) => 
-          for (b, (xx, yy)) <- List((false, (x + 1, y)), (true, (x + 1, y + 1)), (false, (x, y + 1))) yield (b, (xx, yy)) :: path
-        case (_, (x, y)) :: _ => 
-          for (xx, yy) <- List((x + 1, y), (x, y + 1)) if xx <= left.length && yy <= right.length yield (false, (xx, yy)) :: path
-        case _ => 
-          List.empty
-      }
-    } 
-
-    def pathFind(target:Loc, from:List[Path]):Path = from match {
-      case ((_, h) :: _) :: _ if h == target => from.head // We've arrived
-      case head :: tail => 
-        pathFind(target, tail ++ nextLocs(head))
-      case _ => 
-        throw new RuntimeException("Ran out of locations to pathfind from")
+    def neighboursUp(p:Loc):Seq[Loc] = {
+      val (x, y) = p
+      if lRange.contains(x) && rRange.contains(y) && left(x) == right(y) then
+        Seq((x, y+1), (x+1, y+1), (x+1, y))
+      else
+        Seq((x, y+1), (x+1, y))
     }
 
-    val path = pathFind((left.length, right.length), List(List((false, (0, 0)))))
-    (for (b, (l, _)) <- path if b yield left(l - 1)).reverse
+    // memoise the distance table
+    for 
+      x <- (0 to left.length)
+      y <- (0 to right.length)
+      p = (x, y)
+
+      // Note that we do have to include (left.length, right.length - the grid is one bigger than the num letters)
+      (xx, yy) <- neighboursUp(p) //if xx <= left.length && yy <= right.length
+    do 
+      val d = memo(p)
+      val pp = (xx, yy)
+      if memo.getOrElse(pp, d + 2) > d + 1 then memo(pp) = d + 1
+
+    //println(memo.toSeq.sortBy(_._1))
+
+    def neighbourDown(d:Int, p:Loc):Option[(Boolean, Loc)] =
+      val (x, y) = p
+      // when traversing back down the table, we do still need to check for valid paths
+      if (x > 0 && y > 0 && left(x-1) == right(y-1)) then
+        Seq((x-1, y-1), (x-1, y), (x, y-1))
+          .find { pp => memo.contains(pp) && memo(pp) < d }
+          .map { (xx, yy) => (true, (xx, yy))}
+      else 
+        Seq((x-1, y), (x, y-1))
+          .find { pp => memo.contains(pp) && memo(pp) < d }
+          .map { (xx, yy) => (false, (xx, yy))}
+
+    var _lcs:List[T] = Nil
+    var pos = (left.length, right.length)
+    for 
+      _ <- 0 until memo(pos) 
+      (diag, (x, y)) <- neighbourDown(memo(pos), pos)
+    do
+      //println(s"Following ${(x, y)}")
+      if diag then 
+        //println(s" ${(x, y)} $left $right")
+        _lcs = left(x) :: _lcs
+      pos = (x, y)
+
+    _lcs
+}
+
+enum CompareResult[T]:
+  case Left(item:T)
+  case Right(item:T)
+  case Both(item:T)
+
+/** Takes two sequences, diffs them, and returns what's in the left, what's in the right, and what's in both */
+def compare[T](left:Seq[T], right:Seq[T]):Seq[CompareResult[T]] = {
+  val lcs = longestCommonSubsequence(left, right)
+
+  @scala.annotation.tailrec
+  def recurse(b:List[T], l:List[T], r:List[T], result:Seq[CompareResult[T]]):Seq[CompareResult[T]] = (b, l, r) match {
+    case (Nil, Nil, Nil) => result
+    case (Nil, ll, rr) => result ++ ll.map(x => CompareResult.Left(x)) ++ rr.map(x => CompareResult.Right(x))
+    case (_, ll, Nil) => result ++ ll.map(x => CompareResult.Left(x))
+    case (_, Nil, rr) => result ++ rr.map(x => CompareResult.Right(x))
+    case (bb :: _, ll :: lt, _) if bb != ll => recurse(b, lt, r, result :+ CompareResult.Left(ll))
+    case (bb :: _, _, rr :: rt) if bb != rr => recurse(b, l, rt, result :+ CompareResult.Right(rr))
+    case (bb :: bt, _ :: lt, _ :: rt) => recurse(bt, lt, rt, result :+ CompareResult.Both(bb))
+  }
+  
+  recurse(lcs.toList, left.toList, right.toList, Seq.empty)
 }
 
 // Takes a list of commits and sorts them to show in a git graph
