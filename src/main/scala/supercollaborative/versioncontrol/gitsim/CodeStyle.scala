@@ -76,4 +76,13 @@ object CodeStyle {
       " .path.both" -> "stroke: #444; stroke-width: 5;",
   ).register()
 
+  val commitDAG = Styling(
+    """
+      |
+      |""".stripMargin
+    ).modifiedBy(
+      " .commit-label" -> "dominant-baseline: middle; text-anchor: middle;",
+      " .parent-arrow" -> "stroke: #aaa; stroke-width: 4; fill: none; stroke-linejoin: round; stroke-linecap: round;",
+  ).register()
+
 }

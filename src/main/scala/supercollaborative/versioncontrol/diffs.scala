@@ -297,7 +297,7 @@ val diffsDeck = DeckBuilder(1920, 1080)
   |* If we know the difference between the files, we could also generate a `patch` (a sequence of delete, keep, and add operations) that
   |  would transform a file from one version to another.
   |
-  |* This helps git to describe what has changed between versions
+  |* This helps git to describe what has changed between versions. 
   |
   |* But it only really works for text files. For binary files, we can only tell that the file has changed.
   |

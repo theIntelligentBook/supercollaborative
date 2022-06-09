@@ -11,6 +11,9 @@ val toc:site.Toc = site.Toc(
   "Keeping history" -> site.add("vcs-history",
     Alternative("Slides", Deck(() => vcDeck))
   ),
+  "Branches" -> site.add("vcs-branch",
+    Alternative("Slides", Deck(() => branchDeck))
+  ),
   "Diffs" -> site.add("vcs-diff",
     Alternative("Slides", Deck(() => diffsDeck))
   )
