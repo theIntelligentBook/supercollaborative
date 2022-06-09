@@ -68,6 +68,7 @@ def longestCommonSubsequence[T](left:Seq[T], right:Seq[T]):Seq[T] = {
     _lcs
 }
 
+/** Describes the result of comparing two sequences */
 enum CompareResult[T]:
   case Left(item:T)
   case Right(item:T)
@@ -92,34 +93,40 @@ def compare[T](left:Seq[T], right:Seq[T]):Seq[CompareResult[T]] = {
 }
 
 // Takes a list of commits and sorts them to show in a git graph
-def temporalTopological(toAdd:Seq[Commit], sorted:Seq[Commit] = Seq.empty):Seq[Commit] = 
-  toAdd.sortBy(_.time) match { // TODO: is this sorted the right way?
+def temporalTopological(toAdd:Seq[Commit], sorted:List[Commit] = Nil):Seq[Commit] = 
+  toAdd.filterNot(sorted.contains(_)).sortBy(- _.time) match { 
     case Nil => sorted
-    case h :: t => temporalTopological(t ++ h.parents.filter(!sorted.contains(_)), sorted :+ h)
+    case h :: t => 
+      val newSorted = h :: sorted
+      val newToAdd = (t ++ h.parents)
+      temporalTopological(newToAdd, newSorted)
   }
 
 
 // If the commit graph is vertical, tries to work out the horizontal positioning of commits
-def layout(commits:Seq[Commit], laidOut:List[(Commit, Int)] = Nil, active:Seq[Commit] = Seq.empty):Seq[(Commit, Int)] = {
-  commits match {
-    case Nil => laidOut.reverse
-    case h :: t if active.contains(h) =>
-      val x = active.indexOf(h) 
-      val lo = (h, x) :: laidOut
-      val parents = h.parents.filterNot(active.contains(_))
-      val newActive = active.take(x) ++ parents ++ active.drop(x + 1)
-      layout(t, lo, newActive)
-    case h :: t =>
-      val x = active.length
-      val lo = (h, x) :: laidOut
-      val parents = h.parents.filterNot(active.contains(_))
-      val newActive = active ++ parents
-      layout(t, lo, newActive)
-  }
+def layout(commits:Seq[Commit], laidOut:List[(Commit, Int)] = Nil, active:Seq[Commit] = Seq.empty):Map[Commit, (Int, Int)] = {
 
+  // To do the layout, we "book" columns before we reach them. 
+  // This contains the expected next occupant of a column
+  var active:Seq[Commit] = Seq.empty
+
+  // Add the commits to the map we can
+  var map = scala.collection.mutable.Map.empty[Commit, (Int, Int)]
+
+  // Run through the list from newest to oldest (i.e. in reverse)
+  for (c, i) <- commits.reverseIterator.zipWithIndex if !map.contains(c) do
+    val pos = active.indexOf(c)
+    if pos >= 0 then 
+      map(c) = (i, pos)
+      active = active.take(pos) ++ c.parents.filterNot(active.contains(_)) ++ active.drop(pos + 1)
+    else 
+      map(c) = (i, active.length)
+      active = active ++ c.parents.filterNot(active.contains(_))
+
+  map.toMap
 }
 
-def layoutRefs(refs:Seq[Ref]):Seq[(Commit, Int)] = {
+def layoutRefs(refs:Seq[Ref]):Map[Commit, (Int, Int)] = {
   val commits = temporalTopological(refs.map(_.commit))
   layout(commits)
 }
@@ -130,14 +137,17 @@ enum GitException extends Throwable:
   case FileException(msg:String)
   case CommitException(msg:String)
 
+/** An object that can be stored in our GitSim */ 
 sealed trait Obj:
   def hash:String = 
     val h = this.hashCode.toHexString
     if h.length < 8 then Seq.fill(8 - h.length)("0").mkString + h else h
 
+/** Represents an immutable file */
 sealed trait File extends Obj:
   def toMutable: MutableFile
 
+/** The kinds of immutable file our git sim supports */
 object File:
   case class TextFile(text:String) extends File:
     def toMutable = MutableFile.TextFile(text)
@@ -220,11 +230,8 @@ case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:S
 
 object Commit {
 
+  /** Git sim repositories start out pointing to the empty commit */
   val Empty = Commit(Seq.empty, File.Tree(Map.empty), "", "", 0)
-
-}
-
-def temporalPositionSort(start:Seq[Commit]) = {
 
 }
 
@@ -239,7 +246,9 @@ case class Remote(name:String, url:String, refs:Set[Ref])
 
 case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree) {
 
-  def checkout(ref:Ref) = this.copy(head = ref)
+  def checkout(ref:Ref):Git = this.copy(head = ref)
+
+  def switch(name:String):Git = checkout(branches(name))
 
   def fetch(remoteName:String, remote:Git) = this.copy(
     objects = objects ++ remote.objects, 
@@ -250,11 +259,11 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
     }
   )
 
-  def branch(name:String) = {
+  def branch(name:String):Git = {
     if refs.exists { 
       case Ref.Branch(n, _) if n == name => true
       case _ => false
-    } then Failure(GitException.AlreadyExists) else this.copy(refs = refs + Ref.Branch(name, head.commit))
+    } then throw GitException.AlreadyExists else this.copy(refs = refs + Ref.Branch(name, head.commit), head = Ref.Branch(name, head.commit))
   }
 
   def branches:Map[String, Ref.Branch] = (refs.collect { 
@@ -266,7 +275,7 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
   def commit(author:String, message:String, time:Double) = {
     head match {
       case Ref.Branch(name, c) => 
-        val newC = Commit(Seq(c), index, author, message, time)
+        val newC = Commit(if c == Commit.Empty then Seq.empty else Seq(c), index, author, message, time)
         this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC), index = File.Tree(Map.empty))
       case _ => 
         throw GitException.CommitException("Can't commit in this checkout state")
