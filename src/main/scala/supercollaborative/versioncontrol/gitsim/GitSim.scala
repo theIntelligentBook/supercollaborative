@@ -111,17 +111,34 @@ def layout(commits:Seq[Commit], laidOut:List[(Commit, Int)] = Nil, active:Seq[Co
   var active:Seq[Commit] = Seq.empty
 
   // Add the commits to the map we can
+  var children = scala.collection.mutable.Map.empty[Commit, Seq[Commit]]
   var map = scala.collection.mutable.Map.empty[Commit, (Int, Int)]
 
+  for 
+    c <- commits.iterator 
+    p <- c.parents
+  do children(p) = children.getOrElse(p, Seq.empty) :+ c
+
   // Run through the list from newest to oldest (i.e. in reverse)
-  for (c, i) <- commits.reverseIterator.zipWithIndex if !map.contains(c) do
+  for (c, i) <- commits.iterator.zipWithIndex if !map.contains(c) do
     val pos = active.indexOf(c)
     if pos >= 0 then 
       map(c) = (i, pos)
-      active = active.take(pos) ++ c.parents.filterNot(active.contains(_)) ++ active.drop(pos + 1)
+      active = if children.contains(c) then 
+        // Children try to occupy the same column as the parent
+        // If there are multiple children, they will push other commits to the right
+        active.take(pos) ++ children(c).filterNot(active.contains(_)) ++ active.drop(pos + 1)
+      else 
+        // If a commit has no children, we hold its column with an empty commit
+        // this endeavours to prevent a line from passing through it 
+        // (e.g. if a younger sibling was put in the same column, a line from its parent to that
+        // sibling would pass through this commit)
+        active.take(pos) ++ Seq(Commit.Empty) ++ active.drop(pos + 1)
     else 
       map(c) = (i, active.length)
-      active = active ++ c.parents.filterNot(active.contains(_))
+      active = active ++ children.getOrElse(c, Seq.empty).filterNot(active.contains(_))
+
+    println(s"done ${c.comment} active ${active.map(_.comment)}")
 
   map.toMap
 }
@@ -226,6 +243,9 @@ case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:S
   def canFastForwardTo(other:Commit) = other.ancestors.contains(this)
 
   def behind(other:Commit) = this != other && (other.ancestors.toSet - ancestors.toSet).nonEmpty
+
+  @scala.annotation.tailrec
+  final def ^(i:Int):Commit = if i <= 0 || parents.isEmpty then this else parents.head.^(i - 1)
 }
 
 object Commit {
@@ -239,8 +259,16 @@ enum Ref:
   case Branch(name:String, commit:Commit)
   case Tag(name:String, commit:Commit)
   case Detached(commit:Commit)
-  
+
+  case NamedDetached(name:String, commit:Commit)
+
   def commit:Commit
+
+  // useful if we want to show a git graph but strip out the branch label
+  def detach:Detached = Detached(commit)
+
+  // useful for showing HEAD as if it was a reference in diagrams
+  def namedDetach(name:String) = NamedDetached(name, commit)
 
 case class Remote(name:String, url:String, refs:Set[Ref])
 
@@ -249,6 +277,8 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
   def checkout(ref:Ref):Git = this.copy(head = ref)
 
   def switch(name:String):Git = checkout(branches(name))
+
+  def checkout_^(i:Int):Git = checkout(Ref.Detached(this.head.commit.^(i)))
 
   def fetch(remoteName:String, remote:Git) = this.copy(
     objects = objects ++ remote.objects, 
@@ -262,12 +292,25 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
   def branch(name:String):Git = {
     if refs.exists { 
       case Ref.Branch(n, _) if n == name => true
+      case Ref.Tag(n, _) if n == name => true
       case _ => false
-    } then throw GitException.AlreadyExists else this.copy(refs = refs + Ref.Branch(name, head.commit), head = Ref.Branch(name, head.commit))
+    } then throw GitException.AlreadyExists else this.copy(refs = refs + Ref.Branch(name, head.commit))
+  }
+
+  def tag(name:String):Git = {
+    if refs.exists { 
+      case Ref.Branch(n, _) if n == name => true
+      case Ref.Tag(n, _) if n == name => true
+      case _ => false
+    } then throw GitException.AlreadyExists else this.copy(refs = refs + Ref.Tag(name, head.commit))
   }
 
   def branches:Map[String, Ref.Branch] = (refs.collect { 
     case b:Ref.Branch => b.name -> b
+  }).toMap
+
+  def tags:Map[String, Ref.Tag] = (refs.collect { 
+    case b:Ref.Tag => b.name -> b
   }).toMap
 
   def addAll(t:File.Tree) = this.copy(index = t)
@@ -281,7 +324,6 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
         throw GitException.CommitException("Can't commit in this checkout state")
     }
   }
-
 
 }
 
