@@ -70,7 +70,11 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
   def cx(x:Int) = w + w * x
   def cy(y:Int) = h + h * y
 
-  def commitCircle(x:Int, y:Int)  = SVG.circle(^.attr("cx") := cx(x), ^.attr("cy") := cy(y), ^.attr("r") := r)
+  def commitCircle(c:Commit, x:Int, y:Int)  = SVG.circle(
+    ^.cls := "commit " + config.commitClass(c),
+    ^.onClick --> config.onClick(c),
+    ^.attr("cx") := cx(x), ^.attr("cy") := cy(y), ^.attr("r") := r
+  )
 
   def commitArrow(c:Commit, p:Commit, x1:Int, y1:Int, x2:Int, y2:Int) = {
     val xx1 = cx(x1) - r
@@ -97,7 +101,7 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
         commitArrow(c, p, x, y, xx, yy)
       ),
       refLine(reflabels, (xx, yy), r),
-      commitCircle(x, y),
+      commitCircle(c, x, y),
       reflabels,
       config.label(c, (xx, yy)), // Config label takes pixel coordinates
     )
@@ -130,7 +134,8 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
 
 }
 
-case class HDAGOnly(refs:Seq[Ref], height: Int, config:HorizontalBranchConfig) extends VHtmlComponent {
+/** Displays a git graph hozontally */
+case class HDAGOnly(refs:Seq[Ref], config:HorizontalBranchConfig) extends VHtmlComponent {
 
   lazy val commits = layoutRefs(refs)
 
@@ -141,6 +146,35 @@ case class HDAGOnly(refs:Seq[Ref], height: Int, config:HorizontalBranchConfig) e
   }
 
 }
+
+/** Displays a gir graph horizontally, allowing elements to be selected */
+case class SelectableHDAG(refs:Seq[Ref]) extends VHtmlComponent {
+
+  lazy val commits = layoutRefs(refs)
+  var selected:Option[Commit] = None
+
+  def select(c:Commit):Unit = 
+    selected = if selected.contains(c) then None else Some(c)
+    rerender()
+
+  def render = {
+    val ancestors = selected.toSet.flatMap(_.ancestors) ++ selected
+
+    <.div(^.cls := CodeStyle.horizontalCommitDAG.className, 
+      HorizontalBranch(commits, refs, HorizontalBranchConfig(
+        10, 150, 150,
+        label = { case (c, (x, y)) => 
+          SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, c.hash)
+        },
+        commitClass = (c) => if ancestors.contains(c) then "selected" else "",
+        lineClass = (c, p) => if ancestors.contains(c) then "selected" else "",
+        onClick = (c) => select(c)
+      ))
+    )
+  }
+
+}
+
 
 case class BranchHistoryAndTree(branch:Ref.Branch, height: Int) extends VHtmlComponent {
 

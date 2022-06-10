@@ -92,6 +92,8 @@ object CodeStyle {
       " .compact-commit-label-box .hash" -> "color: #44a",
       " .compact-commit-label-box .author" -> "color: #4a4",
       " .compact-commit-label-box .time" -> "color: #44a",
+      " .commit.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a; stroke-width: 2px",
+      " .parent-arrow.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a;",
   ).register()
 
 }

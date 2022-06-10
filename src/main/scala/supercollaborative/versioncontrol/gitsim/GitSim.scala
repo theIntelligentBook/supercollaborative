@@ -236,9 +236,12 @@ object MutableFile {
     def toImmutable = File.BinaryFile(arr.clone)
 }
 
+/** Represents a git commit */
 case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:String, time:Double)extends Obj {
   // All the ancestors of this commit in a single Seq
-  def ancestors:Seq[Commit] = parents.flatMap(_.ancestors) 
+  def ancestors:Set[Commit] = 
+    val pset = parents.toSet
+    pset ++ pset.flatMap(_.ancestors) 
 
   def canFastForwardTo(other:Commit) = other.ancestors.contains(this)
 
@@ -323,6 +326,13 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
       case _ => 
         throw GitException.CommitException("Can't commit in this checkout state")
     }
+  }
+
+  def headAsDetached = head match {
+    case Ref.Branch(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
+    case Ref.Tag(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
+    case Ref.Detached(c) => Ref.NamedDetached(s"HEAD (detached)", c)
+    case Ref.NamedDetached(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
   }
 
 }
