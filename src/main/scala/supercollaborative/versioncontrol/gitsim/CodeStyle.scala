@@ -76,13 +76,22 @@ object CodeStyle {
       " .path.both" -> "stroke: #444; stroke-width: 5;",
   ).register()
 
-  val commitDAG = Styling(
+  val horizontalCommitDAG = Styling(
     """
       |
       |""".stripMargin
     ).modifiedBy(
       " .commit-label" -> "dominant-baseline: middle; text-anchor: middle;",
+      " .tag-label" -> "font-size: 20px; fill: #0aa; dominant-baseline: text-before-edge;",
+      " .branch-label" -> "font-size: 20px; fill: #a0a; dominant-baseline: text-before-edge;",
+      " .named-detached-label" -> "font-size: 20px; fill: #aa0; dominant-baseline: text-before-edge;",
+      " .ref-line" -> "stroke: #888; stroke-width: 3; stroke-dasharray: 4;",
+      " .commit-label.hash-only" -> "font-size: 20px; fill: #44a;",
       " .parent-arrow" -> "stroke: #aaa; stroke-width: 4; fill: none; stroke-linejoin: round; stroke-linecap: round;",
+      " .compact-commit-label-box" -> "text-align: center; font-size: 20px; position: absolute; bottom: 0; width: 100%; overflow-y: auto;",
+      " .compact-commit-label-box .hash" -> "color: #44a",
+      " .compact-commit-label-box .author" -> "color: #4a4",
+      " .compact-commit-label-box .time" -> "color: #44a",
   ).register()
 
 }
