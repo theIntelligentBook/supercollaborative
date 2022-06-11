@@ -19,19 +19,19 @@ val longLinearExample = (1 to 100).foldLeft(Git.init) { case (g, i) => g.commit(
 
 val tagExample = longLinearExample
     .checkout_^(20)
-    .tag("release 2.0")
+    .tag("release2.0")
     .checkout_^(25)
-    .tag("release 1.0")
+    .tag("release1.0")
     .switch("main")
 
 val branchExample = Git.init
     .commit("Will", "A", 1)
     .commit("Will", "B", 2)
     .branch("v1.0")
-    .tag("release 1.0")
+    .tag("release1.0")
     .commit("Will", "C", 3)
     .commit("Will", "D", 4)
-    .tag("release 2.0")
+    .tag("release2.0")
     .branch("v2.0")
 
 def hscrollBox = <.div(^.attr("style") := "max-width: 100%; overflow-x: auto")
@@ -98,7 +98,7 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     |
     |""".stripMargin),
     <.p(hscrollBox(
-        HDAGOnly(Seq(tagExample.head.namedDetach("HEAD"), tagExample.tags("release 1.0"), tagExample.tags("release 2.0")), hbHashOnly),
+        HDAGOnly(Seq(tagExample.head.namedDetach("HEAD"), tagExample.tags("release1.0"), tagExample.tags("release2.0")), hbHashOnly),
     )),
     Common.marked("""
     |To create a *lightweight* tag on the current commit, 

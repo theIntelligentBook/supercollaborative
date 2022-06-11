@@ -13,7 +13,8 @@ case class HorizontalBranchConfig(
   label: (Commit, (Int, Int)) => VHtmlNode,
   commitClass: (Commit) => String,
   lineClass: (Commit, Commit) => String,
-  onClick: (Commit) => Unit
+  onClick: (Commit) => Unit,
+  tagColon: Boolean = true // Whether to put "tag:" and "branch:" at the beginning of tag and branch labels
 )
 
 // A layout for graphs that have a single letter in the commit comment
@@ -29,9 +30,11 @@ val hbLetterInComment = HorizontalBranchConfig(
 
 // A layout for graphs that have a single letter in the commit comment
 val hbHashOnly = HorizontalBranchConfig(
-  10, 150, 150,
+  10, 200, 150,
   label = { case (c, (x, y)) => 
-    SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, c.hash)
+    SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, 
+      if c == Commit.Empty then "(empty)" else c.hash
+    )
   },
   commitClass = (c) => "",
   lineClass = (c, p) => "",
@@ -62,7 +65,7 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
   def r = config.r
   def w = config.hGap
   def h = config.vGap
-  val maxH = 1 + commits.values.maxBy(_._2)._2
+  val maxH = if commits.isEmpty then 1 else 1 + commits.values.maxBy(_._2)._2
   val pxWidth = commits.size * w + w
   val pxHeight = maxH * h + h
 
@@ -107,8 +110,10 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
     )
   }
 
-  def tags(c:Commit):Seq[Ref.Tag] = refs.collect { case t:Ref.Tag if t.commit == c => t }
+  def tags(c:Commit):Seq[Ref.Tag | Ref.RemoteTag] = refs.collect { case t:Ref.Tag if t.commit == c => t }
   def branches(c:Commit):Seq[Ref.Branch] = refs.collect { case t:Ref.Branch if t.commit == c => t }
+  def remoteTags(c:Commit):Seq[Ref.RemoteTag] = refs.collect { case t:Ref.RemoteTag if t.commit == c => t }
+  def remoteBranches(c:Commit):Seq[Ref.RemoteBranch] = refs.collect { case t:Ref.RemoteBranch if t.commit == c => t }
   def named(c:Commit):Seq[Ref.NamedDetached] = refs.collect { case t:Ref.NamedDetached if t.commit == c => t }
 
   def refLine[T](labels:Seq[T], p:(Int, Int), r:Int) = 
@@ -121,9 +126,11 @@ def HorizontalBranch(commits:Map[Commit, (Int, Int)], refs:Seq[Ref], config:Hori
   def refLabels(c:Commit, p:(Int, Int)) = 
     val lineHeight = 25
     val (xx, yy) = p
-    (tags(c) ++ branches(c) ++ named(c)).zipWithIndex collect { 
+    (tags(c) ++ remoteTags(c) ++ branches(c) ++ remoteBranches(c) ++ named(c)).zipWithIndex collect { 
       case (Ref.Tag(n, _), i) => SVG.text(^.cls := "tag-label", ^.attr("x") := xx + 10, ^.attr("y") := (yy + lineHeight + (lineHeight * i)), "tag: " + n)
       case (Ref.Branch(n, _), i) => SVG.text(^.cls := "branch-label", ^.attr("x") := xx + 10, ^.attr("y") := (yy + lineHeight + (lineHeight * i)), "branch: " + n)
+      case (Ref.RemoteTag(r, n, _), i) => SVG.text(^.cls := "tag-label", ^.attr("x") := xx + 10, ^.attr("y") := (yy + lineHeight + (lineHeight * i)), s"tag: $r/$n")
+      case (Ref.RemoteBranch(r, n, _), i) => SVG.text(^.cls := "branch-label", ^.attr("x") := xx + 10, ^.attr("y") := (yy + lineHeight + (lineHeight * i)), s"branch: $r/$n")
       case (Ref.NamedDetached(n, _), i) => SVG.text(^.cls := "named-detached-label", ^.attr("x") := xx + 10, ^.attr("y") := (yy + lineHeight + (lineHeight * i)), n)
     }
 
@@ -162,9 +169,11 @@ case class SelectableHDAG(refs:Seq[Ref]) extends VHtmlComponent {
 
     <.div(^.cls := CodeStyle.horizontalCommitDAG.className, 
       HorizontalBranch(commits, refs, HorizontalBranchConfig(
-        10, 150, 150,
+        10, 200, 150,
         label = { case (c, (x, y)) => 
-          SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, c.hash)
+          SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, 
+            if c == Commit.Empty then "(empty)" else c.hash
+          )
         },
         commitClass = (c) => if ancestors.contains(c) then "selected" else "",
         lineClass = (c, p) => if ancestors.contains(c) then "selected" else "",

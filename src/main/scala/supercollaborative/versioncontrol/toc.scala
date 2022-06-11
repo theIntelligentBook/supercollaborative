@@ -16,7 +16,14 @@ val toc:site.Toc = site.Toc(
   ),
   "Diffs" -> site.add("vcs-diff",
     Alternative("Slides", Deck(() => diffsDeck))
+  ),
+  "Remotes" -> site.add("vcs-remote",
+    Alternative("Slides", Deck(() => remotesDeck))
+  ),
+  "Merges" -> site.add("vcs-merge",
+    Alternative("Slides", Deck(() => mergesDeck))
   )
+
 
 )
 
