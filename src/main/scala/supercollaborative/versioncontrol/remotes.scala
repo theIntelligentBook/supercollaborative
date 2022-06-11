@@ -505,11 +505,7 @@ val remotesDeck = DeckBuilder(1920, 1080)
         )))),
         <.p(blockLabel("local")(hscrollBox(SelectableHDAG(
           local.refs.toSeq :+ local.headAsDetached
-        )))),
-        Common.marked(s"""
-        |
-        |However, now our `main` is strictly ahead of `origin`'s `main` so we can push again
-        """.stripMargin)
+        ))))
       )
     },
   ))
