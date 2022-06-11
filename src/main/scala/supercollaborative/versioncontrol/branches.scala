@@ -19,19 +19,19 @@ val longLinearExample = (1 to 100).foldLeft(Git.init) { case (g, i) => g.commit(
 
 val tagExample = longLinearExample
     .checkout_^(20)
-    .tag("release 2.0")
+    .tag("release2.0")
     .checkout_^(25)
-    .tag("release 1.0")
+    .tag("release1.0")
     .switch("main")
 
 val branchExample = Git.init
     .commit("Will", "A", 1)
     .commit("Will", "B", 2)
     .branch("v1.0")
-    .tag("release 1.0")
+    .tag("release1.0")
     .commit("Will", "C", 3)
     .commit("Will", "D", 4)
-    .tag("release 2.0")
+    .tag("release2.0")
     .branch("v2.0")
 
 def hscrollBox = <.div(^.attr("style") := "max-width: 100%; overflow-x: auto")
@@ -55,7 +55,7 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     |Let's lay that out as a *graph*, horizontally for now
     |
     |""".stripMargin),
-    HDAGOnly(Seq(revertedExample.head.namedDetach("HEAD")), 400, hbCompactLabel),
+    HDAGOnly(Seq(revertedExample.head.namedDetach("HEAD")), hbCompactLabel),
     Common.marked("""
     |Note that each commit contains a reference to its parent, but doesn't know
     |who its children are (or will be). So, we draw the arrow
@@ -78,7 +78,7 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     |
     |""".stripMargin),
     <.p(hscrollBox(
-        HDAGOnly(Seq(longLinearExample.head.namedDetach("HEAD")), 400, hbHashOnly),
+        HDAGOnly(Seq(longLinearExample.head.namedDetach("HEAD")), hbHashOnly),
     )),
     Common.marked("""
     |
@@ -98,7 +98,7 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     |
     |""".stripMargin),
     <.p(hscrollBox(
-        HDAGOnly(Seq(tagExample.head.namedDetach("HEAD"), tagExample.tags("release 1.0"), tagExample.tags("release 2.0")), 400, hbHashOnly),
+        HDAGOnly(Seq(tagExample.head.namedDetach("HEAD"), tagExample.tags("release1.0"), tagExample.tags("release2.0")), hbHashOnly),
     )),
     Common.marked("""
     |To create a *lightweight* tag on the current commit, 
@@ -128,9 +128,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     |""".stripMargin),
     <.p(hscrollBox(HDAGOnly({      
         val graph = branchExample      
-        graph.tags.values.toSeq :+ graph.head.namedDetach("HEAD")
+        graph.tags.values.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
     Common.marked("""
     |
@@ -156,9 +156,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
     <.p(hscrollBox(HDAGOnly({
       val graph = branchExample
 
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (main)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
     Common.marked("""
     |
@@ -183,9 +183,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         val graph = branchExample
         .commit("Will", "E", 5)
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (main)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
     Common.marked("""
     |
@@ -208,9 +208,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .commit("Will", "E", 5)
         .checkout(branchExample.branches("v1.0"))
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (v1.0)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
     Common.marked("""
     |
@@ -230,9 +230,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .checkout(branchExample.branches("v1.0"))
         .commit("Will", "F", 6)
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (v1.0)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
   ))
   .veautifulSlide(<.div(
@@ -249,9 +249,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .commit("Will", "F", 6)
         .switch("main")
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (main)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
   ))
   .veautifulSlide(<.div(
@@ -269,9 +269,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .switch("main")
         .commit("Will", "G", 7)
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (main)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
   ))
   .veautifulSlide(<.div(
@@ -290,9 +290,9 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .commit("Will", "G", 7)
         .switch("v2.0")
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (v2.0)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
   ))
   .veautifulSlide(<.div(
@@ -312,37 +312,37 @@ lazy val branchDeck = DeckBuilder(1920, 1080)
         .switch("v2.0")
         .commit("Will", "H", 7)
       
-        graph.refs.toSeq :+ graph.head.namedDetach("HEAD (v2.0)")
+        graph.refs.toSeq :+ graph.headAsDetached
       }, 
-      400, hbHashOnly
+      hbHashOnly
     ))),
   ))
   .veautifulSlide(<.div(
     Common.marked("""
-    |## Branches
+    |## Branch history
     |
-    |Once we've released a version of some software, we will need to maintain it.
-    |
-    |Even though we've moved on to developing version 2.0, there will be customers on version 1.0
-    |who need their bugs fixed.
-    |
-    |Tags are fixed references to particular commits. We're going to need to talk about *branches*.
+    |The git graph is a *directed acyclic graph*. 
     |
     |""".stripMargin),
-    HDAGOnly(
-      Git.init
-        .commit("Will", "A", 1)
-        .commit("Will", "B", 2)
-        .branch("feature")
-        .switch("feature").commit("Will", "C", 3)
-        .branch("second")
-        .switch("main").commit("Will", "D", 4)
-        .switch("feature").commit("Will", "E", 5)
-        .switch("main").commit("Will", "F", 6)
-        .switch("second").commit("Will", "G", 7)
-        .branches.values.toSeq, 
-      400, hbLetterInComment
-    )
+    SelectableHDAG({
+      val graph = branchExample
+        .commit("Will", "E", 5)
+        .switch("v1.0")
+        .commit("Will", "F", 6)
+        .switch("main")
+        .commit("Will", "G", 7)
+        .switch("v2.0")
+        .commit("Will", "H", 7)
+      
+      graph.refs.toSeq :+ graph.headAsDetached
+    }),
+    Common.marked("""
+    |
+    |If we checkout a commit or a branch and ask for its history, we'll get all the ancestors of that commit.
+    |
+    |In the graph above, click on a commit's circle to see the history of the commit highlighted.
+    |
+    |""".stripMargin),
   ))
   .markdownSlide(Common.willCcBy).withClass("bottom")
   .renderSlides

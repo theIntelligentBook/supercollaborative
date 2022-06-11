@@ -138,7 +138,7 @@ def layout(commits:Seq[Commit], laidOut:List[(Commit, Int)] = Nil, active:Seq[Co
       map(c) = (i, active.length)
       active = active ++ children.getOrElse(c, Seq.empty).filterNot(active.contains(_))
 
-    println(s"done ${c.comment} active ${active.map(_.comment)}")
+    //println(s"done ${c.comment} active ${active.map(_.comment)}")
 
   map.toMap
 }
@@ -151,6 +151,8 @@ def layoutRefs(refs:Seq[Ref]):Map[Commit, (Int, Int)] = {
 
 enum GitException extends Throwable:
   case AlreadyExists
+  case CantFastForward
+  case CantMerge
   case FileException(msg:String)
   case CommitException(msg:String)
 
@@ -236,9 +238,12 @@ object MutableFile {
     def toImmutable = File.BinaryFile(arr.clone)
 }
 
+/** Represents a git commit */
 case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:String, time:Double)extends Obj {
   // All the ancestors of this commit in a single Seq
-  def ancestors:Seq[Commit] = parents.flatMap(_.ancestors) 
+  def ancestors:Set[Commit] = 
+    val pset = parents.toSet
+    pset ++ pset.flatMap(_.ancestors) + Commit.Empty
 
   def canFastForwardTo(other:Commit) = other.ancestors.contains(this)
 
@@ -259,8 +264,9 @@ enum Ref:
   case Branch(name:String, commit:Commit)
   case Tag(name:String, commit:Commit)
   case Detached(commit:Commit)
-
   case NamedDetached(name:String, commit:Commit)
+  case RemoteBranch(remote:String, name:String, commit:Commit)
+  case RemoteTag(remote:String, name:String, commit:Commit)
 
   def commit:Commit
 
@@ -270,6 +276,10 @@ enum Ref:
   // useful for showing HEAD as if it was a reference in diagrams
   def namedDetach(name:String) = NamedDetached(name, commit)
 
+/** 
+  Represents a remote in the git repo. 
+  Note we don't include the Git because Gits are immutable but the remote will advance. 
+  */
 case class Remote(name:String, url:String, refs:Set[Ref])
 
 case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree) {
@@ -280,12 +290,22 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
 
   def checkout_^(i:Int):Git = checkout(Ref.Detached(this.head.commit.^(i)))
 
+  def amalgamateObjects(from:Git) = this.copy(
+    objects = objects ++ from.objects
+  )
+
   def fetch(remoteName:String, remote:Git) = this.copy(
     objects = objects ++ remote.objects, 
     remotes = remotes.map { r => 
       if r.name == remoteName then 
         Remote(r.name, r.url, remote.refs)
       else r
+    },
+    refs = refs -- refs.collect {
+      case r:Ref.RemoteBranch if r.remote == remoteName => r
+    } ++ remote.refs.collect { 
+      case Ref.Branch(n, c) => Ref.RemoteBranch(remoteName, n, c) 
+      case Ref.Tag(n, c) => Ref.RemoteTag(remoteName, n, c) 
     }
   )
 
@@ -309,8 +329,16 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
     case b:Ref.Branch => b.name -> b
   }).toMap
 
+  def remoteBranches:Map[(String, String), Ref.RemoteBranch] = (refs.collect { 
+    case b:Ref.RemoteBranch => (b.remote, b.name) -> b
+  }).toMap
+
   def tags:Map[String, Ref.Tag] = (refs.collect { 
     case b:Ref.Tag => b.name -> b
+  }).toMap
+
+  def remoteTags:Map[String, Ref.RemoteTag] = (refs.collect { 
+    case b:Ref.RemoteTag => s"${b.remote}/${b.name}" -> b
   }).toMap
 
   def addAll(t:File.Tree) = this.copy(index = t)
@@ -323,6 +351,80 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
       case _ => 
         throw GitException.CommitException("Can't commit in this checkout state")
     }
+  }
+
+  def headAsDetached = head match {
+    case Ref.Branch(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
+    case Ref.Tag(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
+    case Ref.RemoteBranch(r, n, c) => Ref.NamedDetached(s"HEAD (detached $r/$n)", c)
+    case Ref.RemoteTag(r, n, c) => Ref.NamedDetached(s"HEAD (detached $r/$n)", c)
+    case Ref.Detached(c) => Ref.NamedDetached(s"HEAD (detached)", c)
+    case Ref.NamedDetached(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)
+  }
+
+  def addRemote(name:String, url:String):Git = this.copy(remotes = remotes + Remote(name, url, Set.empty))
+
+
+  def fastForwardMerge(remote:String, branch:String):Git = {
+    fastForwardMerge(remoteBranches(remote -> branch))
+  }
+
+  def fastForwardMerge(from:Ref):Git = head match {
+    case b:Ref.Branch => fastForwardMerge(b, from)
+    case _ => throw GitException.CantFastForward
+  }
+
+  def fastForwardMerge(to:Ref.Branch, from:Ref):Git = {
+    if from.commit.ancestors.contains(to.commit) then
+      val newB = Ref.Branch(to.name, from.commit)
+      if head == to then
+        this.copy(refs = refs - to + newB, head = newB)
+      else 
+        this.copy(refs = refs - to + newB)
+    else throw GitException.CantFastForward
+  }
+
+  def nonFFMerge(author:String, rb:(String, String), time:Double):Git = {
+    nonFFMerge(author, remoteBranches(rb), time)
+  }
+
+  def nonFFMerge(author:String, from:Ref, time:Double):Git = head match {
+    case b:Ref.Branch => nonFFMerge(author, b, from, time)
+    case _ => throw GitException.CantFastForward
+  }
+
+  def nonFFMerge(author:String, to:Ref.Branch, from:Ref, time:Double):Git = {
+    val toCommit = to.commit
+    val fromCommit = from.commit
+    if to.commit.tree == from.commit.tree then
+      val mergeCommit = Commit(Seq(toCommit, fromCommit), to.commit.tree, author, s"Merge ${from.commit.hash} into ${to.name}", time)
+      val newB = Ref.Branch(to.name, mergeCommit)
+      if head == to then
+        this.copy(refs = refs - to + newB, head = newB)
+      else 
+        this.copy(refs = refs - to + newB)
+    else throw GitException.CantMerge
+  }
+
+  /** Updates the pointer of a remote tracking branch */
+  def updateRemoteBranch(remoteName:String, branchName:String, branch:Ref.Branch):Git =
+    val old = remoteBranches(remoteName -> branchName)
+    this.copy(refs = refs - old + Ref.RemoteBranch(remoteName, branchName, branch.commit))
+
+  /** Simulates a git push of a single branch. Returns (local, remote) */
+  def pushBranch(remoteName:String, branch:String, remote:Git):(Git, Git) = {
+    val localBranch = branches(branch)
+
+    // First, send any missing objects
+    val pushedObjects = remote.amalgamateObjects(this)
+
+    // Second, try to fast-forward the remote branch
+    val afterFF = pushedObjects.fastForwardMerge(localBranch)
+
+    // Now update the remote tracking branch
+    val afterUpdateTracking = updateRemoteBranch(remoteName, branch, localBranch)
+
+    (afterUpdateTracking, afterFF)
   }
 
 }

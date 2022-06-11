@@ -92,6 +92,19 @@ object CodeStyle {
       " .compact-commit-label-box .hash" -> "color: #44a",
       " .compact-commit-label-box .author" -> "color: #4a4",
       " .compact-commit-label-box .time" -> "color: #44a",
+      " .commit.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a; stroke-width: 2px",
+      " .parent-arrow.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a;",
   ).register()
+
+
+  val blockLabel = Styling("""
+  |position: relative; top: 0;
+  |border: 1px solid #f0f0f0;
+  |border-radius: 5px;
+  |""".stripMargin
+  ).modifiedBy(
+    " .block-label" -> "position: absolute; top: 0; left: 0; padding: 2px; background: #f0f0f0; border-radius: 5px; font-size: 20px;"
+  ).register()
+
 
 }
