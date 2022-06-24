@@ -94,6 +94,10 @@ object CodeStyle {
       " .compact-commit-label-box .time" -> "color: #44a",
       " .commit.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a; stroke-width: 2px",
       " .parent-arrow.selected" -> "filter: drop-shadow(0 2px 4px #44a); stroke: #44a;",
+      " .commit.fade" -> "opacity: 0.3;",
+      " .parent-arrow.fade" -> "opacity: 0.3;",
+      " .commit.highlight" -> "filter: drop-shadow(0 2px 6px #4af); stroke: #4af; stroke-width: 4px;",
+      " .parent-arrow.highlight" -> "filter: drop-shadow(0 2px 6px #44a); stroke: #44a;",
   ).register()
 
 
@@ -106,5 +110,10 @@ object CodeStyle {
     " .block-label" -> "position: absolute; top: 0; left: 0; padding: 2px; background: #f0f0f0; border-radius: 5px; font-size: 20px;"
   ).register()
 
+  val threeWayDiff = Styling("""
+  |""".stripMargin
+  ).modifiedBy(
+    " .chunk" -> "display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px dashed #aaa;",
+  ).register()
 
 }

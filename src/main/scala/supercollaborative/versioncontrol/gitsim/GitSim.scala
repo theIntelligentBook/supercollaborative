@@ -92,6 +92,114 @@ def compare[T](left:Seq[T], right:Seq[T]):Seq[CompareResult[T]] = {
   recurse(lcs.toList, left.toList, right.toList, Seq.empty)
 }
 
+/** Home-grown three-way merge algorithm that works by comparing the diffs */
+def threeWayChunk[T](aa:Seq[T], orig:Seq[T], bb:Seq[T]):Seq[(Seq[T], Seq[T], Seq[T])] = {
+
+  val oa = compare(orig, aa)
+  val ob = compare(orig, bb)
+  val diffChanges = compare(oa, ob)
+
+  import scala.collection.mutable.Buffer
+  var chunks = Buffer.empty[(Seq[T], Seq[T], Seq[T])]
+  var currentChunk = (Buffer.empty[T], Buffer.empty[T], Buffer.empty[T])
+
+  // To help with chunking, we keep three modes
+  enum Mode:
+    case Unchanged // All three files match
+    case Matching // A and B match, but not the original
+    case Nonmatching // All other cases
+
+  import CompareResult.*
+  import Mode.*
+
+  var mode = Mode.Unchanged
+
+  diffChanges.foreach {
+    case Both(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Unchanged then 
+        a.append(i)
+        o.append(i)
+        b.append(i)
+      else 
+        mode = Unchanged
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer(i), Buffer(i))
+    case Both(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Matching then 
+        o.append(i)
+      else 
+        mode = Matching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer(i), Buffer.empty)
+    case Both(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Matching then 
+        a.append(i)
+        b.append(i)
+      else 
+        mode = Matching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer(i))
+    case Left(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        a.append(i) // For a's changes, we only add to a. We deal with orig in b's changes
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
+    case Left(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        () // Do nothing. For a's changes, we only add to a. We deal with orig in b's changes
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
+    case Left(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        a.append(i) 
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
+    case Right(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        o.append(i) // For b's changes, we update orig and b
+        b.append(i)
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer(i), Buffer(i))
+    case Right(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        o.append(i) // For b's changes, we update orig and b
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
+    case Right(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        b.append(i) 
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer(i))
+  }
+
+  val (a, o, b) = currentChunk
+  chunks.append((a.toSeq, o.toSeq, b.toSeq))
+
+  chunks.toSeq
+}
+
+
 // Takes a list of commits and sorts them to show in a git graph
 def temporalTopological(toAdd:Seq[Commit], sorted:List[Commit] = Nil):Seq[Commit] = 
   toAdd.filterNot(sorted.contains(_)).sortBy(- _.time) match { 
@@ -251,6 +359,11 @@ case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:S
 
   @scala.annotation.tailrec
   final def ^(i:Int):Commit = if i <= 0 || parents.isEmpty then this else parents.head.^(i - 1)
+
+  /** Finds a common ancestor that no other common ancestor has in its parentage */
+  def commonAncestor(other:Commit):Option[Commit] = 
+    val combined = (ancestors & other.ancestors)
+    combined.find(c => !combined.exists(cc => cc.ancestors.contains(c)))
 }
 
 object Commit {

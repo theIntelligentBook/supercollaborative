@@ -17,6 +17,7 @@ val toc:site.Toc = site.Toc(
   "Diffs" -> site.add("vcs-diff",
     Alternative("Slides", Deck(() => diffsDeck))
   ),
+  "Tutorial: Git locally" -> site.addChallenge("gitLocalTutorial", localTutorial),
   "Remotes" -> site.add("vcs-remote",
     Alternative("Slides", Deck(() => remotesDeck))
   ),

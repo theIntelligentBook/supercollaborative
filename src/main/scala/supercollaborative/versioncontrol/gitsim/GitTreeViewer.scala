@@ -184,6 +184,31 @@ case class SelectableHDAG(refs:Seq[Ref]) extends VHtmlComponent {
 
 }
 
+/** Displays a gir graph horizontally, allowing elements to be selected */
+case class MergeHDAG(refs:Seq[Ref], from:Ref, to:Ref) extends VHtmlComponent {
+
+  lazy val commits = layoutRefs(refs)
+  val commonAncestor = from.commit.commonAncestor(to.commit)
+  val highlight = commonAncestor.toSet + from.commit + to.commit
+
+  def render = {
+    <.div(^.cls := CodeStyle.horizontalCommitDAG.className, 
+      HorizontalBranch(commits, refs, HorizontalBranchConfig(
+        10, 200, 150,
+        label = { case (c, (x, y)) => 
+          SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, 
+            if c == Commit.Empty then "(empty)" else c.hash
+          )
+        },
+        commitClass = (c) => if highlight.contains(c) then "highlight" else "fade",
+        lineClass = (c, p) => "fade",
+        onClick = (c) => ()
+      ))
+    )
+  }
+
+}
+
 
 case class BranchHistoryAndTree(branch:Ref.Branch, height: Int) extends VHtmlComponent {
 
