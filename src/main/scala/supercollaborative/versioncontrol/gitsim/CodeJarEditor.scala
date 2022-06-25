@@ -16,7 +16,7 @@ object JSCodejar extends js.Object:
 object CodeJar:
   def apply(element:HTMLElement)(highlight: js.Dynamic => Unit) = JSCodejar(element, highlight)
 
-case class CodeJarEditor(name:String)(val initialText:String) extends VHtmlNode {
+case class CodeJarEditor(name:String)(val initialText:String, highlight: String => Option[String] = { _ => None }) extends VHtmlNode {
 
     export structure.attach
     export structure.detach
@@ -28,7 +28,9 @@ case class CodeJarEditor(name:String)(val initialText:String) extends VHtmlNode 
 
     override def afterAttach():Unit = {
       for n <- domNode do
-        val editor = CodeJar(n) { _ => () }
+        val editor = CodeJar(n) { editor => 
+          for replace <- highlight(editor.textContent.asInstanceOf[String]) do editor.innerHTML = replace          
+        }
       
     }
   

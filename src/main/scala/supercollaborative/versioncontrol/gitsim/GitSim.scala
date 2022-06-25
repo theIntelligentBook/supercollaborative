@@ -339,8 +339,34 @@ object MutableFile {
   class TextFile(var text:String) extends MutableFile:
     def toImmutable = File.TextFile(text)
   
-  class Tree(val files:mutable.Map[String, MutableFile]) extends MutableFile:
+  class Tree(val files:mutable.Map[String, MutableFile]) extends MutableFile {
     def toImmutable = File.Tree((for (n, f) <- files yield (n, f.toImmutable)).toMap)
+
+    /** The selectable paths within the tree */
+    def paths:List[List[String]] = 
+      for 
+        (n, f) <- files.toList.sortBy(_._1)
+        p <- f match {
+          case t:Tree => t.paths
+          case _ => List(Nil)
+        }
+      yield n :: p
+
+    def find(path:List[String]):Option[MutableFile] = {
+      path match {
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:Tree => t.find(rest)
+            case _ => None
+          }
+        case f :: _ if files.contains(f) => Some(files(f))
+        case _ => None
+      }
+    }
+
+    def findPath(path:String):Option[MutableFile] = find(path.split("/").toList)
+
+  }
 
   class BinaryFile(val arr:Array[Int]) extends MutableFile:
     def toImmutable = File.BinaryFile(arr.clone)
