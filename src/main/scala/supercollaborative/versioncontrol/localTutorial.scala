@@ -10,13 +10,13 @@ import scala.collection.mutable
 import com.wbillingsley.veautiful.MakeItSo
 import org.scalajs.dom.html
 
-class VNodeStage(n: => VHtmlNode) extends Challenge.Stage {
+class MarkdownStage(text:String) extends Challenge.Stage {
 
   override def completion: Challenge.Completion = Challenge.Open
 
   override def kind: String = "text"
 
-  override protected def render = Challenge.textColumn(n)
+  override protected def render = Challenge.textColumn(^.cls := CodeStyle.markdownSh.className, markedF(text))
 
 }
 
@@ -562,5 +562,461 @@ case class GitSimEx(tree:MutableFile.Tree)(config: EditSuiteConfig) extends Chal
 lazy val localTutorial = Seq(
   Level("Simulation", Seq(
     GitSimEx(tutorialTree)(EditSuiteConfig(EditSuiteView.Tree(Seq("limerick.txt")), git=None))
+  )),
+  Level("Command-line Git", Seq(
+    MarkdownStage("""
+    ## 1. Initialising the repository
+
+    Now that you've worked with a simulated git environment in the browser, it's time to try
+    working with git itself on your own computer.
+
+    If you haven't already got it installed, you can get it from [https://git-scm.com/](https://git-scm.com/).
+
+    From a terminal, create a new directory.
+    In that directory, using your favourite text editor, create two text files.
+    You can use `doubledactyl.txt` and `limerick.txt` from the simulation if you're stuck for content to put in them.
+
+    Next, initialise a repository using `git init`.
+
+    If you look at the directory, you should now find a `.git` directory inside it. This contains git's
+    internal content. On unix-like systems, because `.git` starts with a `.`, it'll be hidden by default. 
+    So you'd need to use `ls -a` rather than just `ls` to see it.
+
+    For example:
+
+    <pre class="sh">
+    ls -a
+    </pre>
+    <pre class="output">
+    .  ..  .git  doubledactyl.txt  limerick.txt
+    </pre>
+
+    """.stripIndent),
+    MarkdownStage("""
+    ## 2. Configuring you
+
+    In step 2 of our simulation, we configured our name and email address. Let's do that again.
+    But first, let's have a look at *all* the configuration git has by default. Run
+
+    <pre class="sh">
+    git config -l
+    </pre>
+
+    You should see quite a few settings, including something like
+
+    <pre class="output">
+    user.name=A default name
+    user.email=default@example.com
+    </pre>
+
+    Your computer may have tried to work out a default name and email address based on your user account and the computer's name.
+    To update your name and email address
+
+    <pre class="sh">
+    git config author.name "Your Name"
+    git config author.email "youremail@example.com"
+    </pre>
+
+    (Substituting in your name and email address, of course!)    
+    """.stripIndent),
+    MarkdownStage("""
+    ## 3. Adding files to the index
+
+    Now that we've initialised an empty repository, let's look at the *status* of the repository.
+
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+
+    No commits yet
+
+    Untracked files:
+      (use "git add <file>..." to include in what will be committed)
+            doubledactyl.txt
+            limerick.txt
+
+    nothing added to commit but untracked files present (use "git add" to track)
+    </pre>
+
+    Let's add the files to the index:
+
+    <pre class="sh">
+    git add limerick.txt
+    git add doubledactyl.txt
+    </pre>
+
+    And then let's try `git status` again
+
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+
+    No commits yet
+
+    Changes to be committed:
+      (use "git rm --cached <file>..." to unstage)
+            new file:   doubledactyl.txt
+            new file:   limerick.txt
+    </pre>
+    """.stripIndent),
+    MarkdownStage("""
+    ## 4. Making your first commit
+
+    Now that there are some staged changes, we can commit them.
+
+    **Remember:** If we do `git commit` without the `-m` flag to give it a message, 
+    git will open the default text editor on our computer to let us enter a message.
+    Often, this is [vi](https://www.cs.colostate.edu/helpdocs/vi.html)
+
+    <pre class="sh">
+    git commit -m "Initial commit"
+    </pre>
+    <pre class="output">
+    [master (root-commit) b2655a3] Initial commit
+    2 files changed, 30 insertions(+)
+    create mode 100644 doubledactyl.txt
+    create mode 100644 limerick.txt
+    </pre>
+
+    Let's have a look at our status now:
+
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    nothing to commit, working tree clean
+    </pre>
+
+    And take a look to see what it put in the log. (Yours will be different.)
+
+    <pre class="sh">
+    git log
+    </pre>
+    <pre class="output">
+    commit b2655a36e258a11fdd0538c70aef79b76a01deba (HEAD -> master)
+    Author: William Billingsley &lt;wbillingsley@example.com&gt;
+    Date:   Sun Jun 26 09:57:39 2022 +0000
+
+    Initial commit
+    </pre>
+    """.stripIndent),
+    MarkdownStage("""
+    ## 5. Tagging a commit
+
+    Let's create a tag for our commit.
+
+    <pre class="sh">
+    git tag first
+    </pre>
+
+    If we take a look at the log again, we'll see the commit has been tagged
+
+    <pre class="sh">
+    git log
+    </pre>
+    <pre class="output">
+    commit b2655a36e258a11fdd0538c70aef79b76a01deba (HEAD -> master, tag: first)
+    Author: William Billingsley &lt;wbillingsley@example.com&gt;
+    Date:   Sun Jun 26 09:57:39 2022 +0000
+
+    Initial commit
+    </pre>
+    """.stripIndent),
+    MarkdownStage("""
+    ## 6a. Make some more changes
+
+    Make some more changes to the files (use your favourite text editor)
+    
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    Changes not staged for commit:
+      (use "git add <file>..." to update what will be committed)
+      (use "git restore <file>..." to discard changes in working directory)
+            modified:   doubledactyl.txt
+            modified:   limerick.txt
+
+    no changes added to commit (use "git add" and/or "git commit -a")
+    </pre>
+    
+    Use `git diff` to take a look at your changes. The content of your changes will depend on what you edited.
+    (You might need to hit "space" to page through the output to get back to the command line.)
+
+    <pre class="sh">
+    git diff
+    </pre>
+    <pre class="output">
+    diff --git a/doubledactyl.txt b/doubledactyl.txt
+    index b7aefba..98ea29f 100644
+    --- a/doubledactyl.txt
+    +++ b/doubledactyl.txt
+    @@ -1,4 +1,4 @@
+    -A Double Dactyl by Will...
+    +"Canine Graffiti" by Will
+    
+    Huppity puppity,
+    All of a muckity!
+    diff --git a/limerick.txt b/limerick.txt
+    index 2d20741..4e73449 100644
+    --- a/limerick.txt
+    +++ b/limerick.txt
+    @@ -1,4 +1,4 @@
+    -A nonsense limerick by Will...
+    +"The Well Dressed Frog" by Will
+    
+    There once was a frog (not a prince)
+    Who's taken up etiquette since
+    </pre>
+
+
+    
+    """.stripIndent),
+    MarkdownStage("""
+    ## 6b. Commit some more changes
+
+    add the changes to the index,
+    and commit them
+
+    <pre class="sh">
+    git add limerick.txt
+    git add doubledactyl.txt
+    git commit -m "Additional changes to demo branch moving on"
+    </pre>
+    <pre class="output">
+    [master 06e0758] Additional changes to demo branch moving on
+    2 files changed, 2 insertions(+), 2 deletions(-)
+    </pre>
+
+    If we take a look at the log again, we'll see the branch has moved on but the tag is still there.
+
+    <pre class="sh">
+    git log
+    </pre>
+    <pre class="output">
+    commit 06e0758df4830ad4bc4042e5146b6730973f5dc6 (HEAD -> master)
+    Author: William Billingsley &lt;wbillingsley@example.com>
+    Date:   Sun Jun 26 10:17:14 2022 +0000
+
+        Additional changes to demo branch moving on
+
+    commit b2655a36e258a11fdd0538c70aef79b76a01deba (tag: first)
+    Author: William Billingsley &lt;wbillingsley@example.com>
+    Date:   Sun Jun 26 09:57:39 2022 +0000
+
+        Initial commit
+    </pre>
+    """.stripIndent),
+    MarkdownStage("""
+    ## 7. Detached HEAD state
+
+    Checking out the tag will put us into "detached HEAD state", as we'll have checked out
+    a specific commit rather than a branch.
+
+    <pre class="sh">
+    git checkout first
+    </pre>
+    <pre class="output">
+    Note: switching to 'first'.
+
+    You are in 'detached HEAD' state. You can look around, make experimental
+    changes and commit them, and you can discard any commits you make in this
+    state without impacting any branches by switching back to a branch.
+
+    If you want to create a new branch to retain commits you create, you may
+    do so (now or later) by using -c with the switch command. Example:
+
+      git switch -c <new-branch-name>
+
+    Or undo this operation with:
+
+      git switch -
+
+    Turn off this advice by setting config variable advice.detachedHead to false
+
+    HEAD is now at b2655a3 Initial commit
+    </pre>
+
+    In our simulation, we got out of this state by creating a new branch with `git branch`
+    and switching to it with `git switch`.  
+    The help text from git tells us we can do both steps
+    in a single command using `git switch -c` (the `-c` is for `create`)
+
+    <pre class="sh">
+    git switch -c feature
+    </pre>
+    <pre class="output">
+    Switched to a new branch 'feature'
+    </pre>
+
+    We're no longer in "detached HEAD state", we're on our new branch called "feature"
+    """.stripIndent),
+    MarkdownStage("""
+    ## 8. Create a new commit on the feature branch
+
+    Edit the files again and make a new commit
+
+    <pre class="sh">
+    git add limerick.txt
+    git add doubledactly.txt
+    git commit -m "Demonstrating making a change on the feature branch"
+    </pre>
+    <pre class="output">
+    [feature a924a8e] Demonstrating making a change on the feature branch
+    2 files changed, 6 insertions(+), 2 deletions(-)
+    </pre>
+    
+    This new commit we've created is on the *feature* branch but isn't on the *master* branch.
+    If we do `git log`, we'll see our new commit and the initial commit, but not the commit
+    we made on master.
+
+    <pre class="sh">
+    git log
+    </pre>
+    <pre class="output">
+    commit a924a8ee67503206c485d74433ac57c510213f25 (HEAD -> feature)
+    Author: William Billingsley &lt;wbillingsley@example.com>
+    Date:   Sun Jun 26 10:32:13 2022 +0000
+
+        Demonstrating making a change on the feature branch
+
+    commit b2655a36e258a11fdd0538c70aef79b76a01deba (tag: first)
+    Author: William Billingsley &lt;wbillingsley@example.com>
+    Date:   Sun Jun 26 09:57:39 2022 +0000
+
+        Initial commit
+    </pre>
+    """.stripIndent),
+    MarkdownStage("""
+    ## 9. Switching back to master
+
+    By default, git called the primary branch of our repository "master".
+    Many modern repositories use "main" instead, but it'd make this first tutorial
+    more complex, so we've left it as-is with git's default for now.
+
+    Let's switch back to master and take a loog at the log
+
+    <pre class="sh">
+    git switch master
+    git log
+    </pre>
+    <pre class="output">
+    commit 06e0758df4830ad4bc4042e5146b6730973f5dc6 (HEAD -> master)
+    Author: William Billingsley <wbillingsley@cantab.net>
+    Date:   Sun Jun 26 10:17:14 2022 +0000
+
+        Additional changes to demo branch moving on
+
+    commit b2655a36e258a11fdd0538c70aef79b76a01deba (tag: first)
+    Author: William Billingsley <wbillingsley@cantab.net>
+    Date:   Sun Jun 26 09:57:39 2022 +0000
+
+        Initial commit
+    </pre>
+    
+    The changes we made earlier on the master branch are back, and we can't see
+    the change we made on the feature branch.
+
+    Take a look in the files in the directory to see they've changed to the version on master too.
+    """.stripIndent),
+    MarkdownStage("""
+    ## 10a. Restoring changes in the index
+
+    Make some edits to the files again, and save them. Then run `git status`
+
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    Changes not staged for commit:
+      (use "git add <file>..." to update what will be committed)
+      (use "git restore <file>..." to discard changes in working directory)
+            modified:   doubledactyl.txt
+            modified:   limerick.txt
+
+    no changes added to commit (use "git add" and/or "git commit -a")
+    </pre>
+
+    Add the changes to the index and check the status again. I've used the
+    shortcut version `git add .` to add all the changes from the current directory.
+
+    <pre class="sh">
+    git add .
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    Changes to be committed:
+      (use "git restore --staged <file>..." to unstage)
+            modified:   doubledactyl.txt
+            modified:   limerick.txt
+    </pre>
+
+    Now let's un-stage those changes using `git restore --staged`
+
+    <pre class="sh">
+    git restore --staged .
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    Changes not staged for commit:
+      (use "git add <file>..." to update what will be committed)
+      (use "git restore <file>..." to discard changes in working directory)
+            modified:   doubledactyl.txt
+            modified:   limerick.txt
+
+    no changes added to commit (use "git add" and/or "git commit -a")
+    </pre>
+    """.stripIndent),
+     MarkdownStage("""
+    ## 10a. Restoring changes in the working tree
+
+    Our changes have been un-staged by restoring the index, so they're now sitting in
+    the working tree.
+
+    <pre class="sh">
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    Changes not staged for commit:
+      (use "git add <file>..." to update what will be committed)
+      (use "git restore <file>..." to discard changes in working directory)
+            modified:   doubledactyl.txt
+            modified:   limerick.txt
+
+    no changes added to commit (use "git add" and/or "git commit -a")
+    </pre>
+
+    Let's restore the files in the working tree to the ones in the index (throwing away our changes).
+
+    <pre class="sh">
+    git restore --worktree .
+    git status
+    </pre>
+    <pre class="output">
+    On branch master
+    nothing to commit, working tree clean
+    </pre>
+
+    ## The End.
+
+    This brings us to the end of the command-line git tutorial (for local repositories).
+    You might want to open up the repository in a visual git client such as [GitHub Desktop](https://desktop.github.com/)
+    or [SourceTree](https://www.sourcetreeapp.com/).
+    You could also open the directory up in [Visual Studio Code](https://code.visualstudio.com/), which is an editor that
+    has an in-built understanding of git.
+
+    These visual clients will tend to make you more efficient working with git, but it is important still to understand
+    the command-line commands.
+    """.stripIndent),
   ))
 )

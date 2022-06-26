@@ -151,6 +151,12 @@ object CodeStyle {
       " .added" ->  "background-color: #8c8; display: inline-block; width: 100%;",
   ).register()
 
+  val markdownSh = Styling("").modifiedBy(
+    " pre.sh" -> "border-left: 10px solid #aaa; border-radius: 5px 5px 0 0; padding: 15px; display: block; background: #444; color: white; margin: 1rem 0 0 0;",
+    " pre.output" -> "border: 1px solid #aaa; border-left: 10px solid #aaa; border-radius: 0 0 5px 5px; padding: 15px; display: block; background: #f0f0f0;"
+  ).register()
+
+
   /** Style used by the git challenge to let the left side scroll and the right side display a fixed UI */
   val gitChallengeSplit = Styling("""
   |display: grid;
