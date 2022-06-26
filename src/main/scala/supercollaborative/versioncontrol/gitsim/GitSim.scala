@@ -92,6 +92,114 @@ def compare[T](left:Seq[T], right:Seq[T]):Seq[CompareResult[T]] = {
   recurse(lcs.toList, left.toList, right.toList, Seq.empty)
 }
 
+/** Home-grown three-way merge algorithm that works by comparing the diffs */
+def threeWayChunk[T](aa:Seq[T], orig:Seq[T], bb:Seq[T]):Seq[(Seq[T], Seq[T], Seq[T])] = {
+
+  val oa = compare(orig, aa)
+  val ob = compare(orig, bb)
+  val diffChanges = compare(oa, ob)
+
+  import scala.collection.mutable.Buffer
+  var chunks = Buffer.empty[(Seq[T], Seq[T], Seq[T])]
+  var currentChunk = (Buffer.empty[T], Buffer.empty[T], Buffer.empty[T])
+
+  // To help with chunking, we keep three modes
+  enum Mode:
+    case Unchanged // All three files match
+    case Matching // A and B match, but not the original
+    case Nonmatching // All other cases
+
+  import CompareResult.*
+  import Mode.*
+
+  var mode = Mode.Unchanged
+
+  diffChanges.foreach {
+    case Both(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Unchanged then 
+        a.append(i)
+        o.append(i)
+        b.append(i)
+      else 
+        mode = Unchanged
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer(i), Buffer(i))
+    case Both(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Matching then 
+        o.append(i)
+      else 
+        mode = Matching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer(i), Buffer.empty)
+    case Both(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Matching then 
+        a.append(i)
+        b.append(i)
+      else 
+        mode = Matching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer(i))
+    case Left(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        a.append(i) // For a's changes, we only add to a. We deal with orig in b's changes
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
+    case Left(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        () // Do nothing. For a's changes, we only add to a. We deal with orig in b's changes
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
+    case Left(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        a.append(i) 
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
+    case Right(Both(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        o.append(i) // For b's changes, we update orig and b
+        b.append(i)
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer(i), Buffer(i))
+    case Right(Left(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        o.append(i) // For b's changes, we update orig and b
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
+    case Right(Right(i)) => 
+      val (a, o, b) = currentChunk
+      if mode == Nonmatching then 
+        b.append(i) 
+      else 
+        mode = Nonmatching
+        chunks.append((a.toSeq, o.toSeq, b.toSeq))
+        currentChunk = (Buffer.empty, Buffer.empty, Buffer(i))
+  }
+
+  val (a, o, b) = currentChunk
+  chunks.append((a.toSeq, o.toSeq, b.toSeq))
+
+  chunks.toSeq
+}
+
+
 // Takes a list of commits and sorts them to show in a git graph
 def temporalTopological(toAdd:Seq[Commit], sorted:List[Commit] = Nil):Seq[Commit] = 
   toAdd.filterNot(sorted.contains(_)).sortBy(- _.time) match { 
@@ -191,6 +299,7 @@ object File:
 
     def find(path:List[String]):Option[File] = {
       path match {
+        case "." :: Nil => Some(this)
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.find(rest)
@@ -205,6 +314,11 @@ object File:
 
     def add(path:List[String], f:File):Tree = {
       path match {
+        case "." :: Nil =>
+          f match {
+            case addTree:File.Tree => Tree(files ++ addTree.files)
+            case _ => throw GitException.FileException("Tried to add non-directory as .")
+          }
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.add(rest, f)
@@ -231,8 +345,62 @@ object MutableFile {
   class TextFile(var text:String) extends MutableFile:
     def toImmutable = File.TextFile(text)
   
-  class Tree(val files:mutable.Map[String, MutableFile]) extends MutableFile:
+  class Tree(val files:mutable.Map[String, MutableFile]) extends MutableFile {
     def toImmutable = File.Tree((for (n, f) <- files yield (n, f.toImmutable)).toMap)
+
+    /** The selectable paths within the tree */
+    def paths:List[List[String]] = 
+      for 
+        (n, f) <- files.toList.sortBy(_._1)
+        p <- f match {
+          case t:Tree => t.paths
+          case _ => List(Nil)
+        }
+      yield n :: p
+
+    def find(path:List[String]):Option[MutableFile] = {
+      path match {
+        case "." :: Nil => Some(this)
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:Tree => t.find(rest)
+            case _ => None
+          }
+        case f :: _ if files.contains(f) => Some(files(f))
+        case _ => None
+      }
+    }
+
+    def findPath(path:String):Option[MutableFile] = find(path.split("/").toList)
+
+    def add(path:List[String], f:MutableFile):Tree = {
+      path match {
+        case "." :: Nil =>
+          f match {
+            case addTree:MutableFile.Tree => files.addAll(addTree.files); this
+            case _ => throw GitException.FileException("Tried to add non-directory as .")
+          }
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:MutableFile.Tree => t.add(rest, f); this
+            case _ => throw GitException.FileException("Not a directory: " + dir)
+          }
+        case dir :: rest if rest.nonEmpty => 
+          val t = Tree(mutable.Map.empty)
+          t.add(rest, f)
+          files(dir) = t
+          this
+        case name :: _ => files(name) = f; this
+        case _ => throw GitException.FileException("Tried to add without a path")
+      }
+    }
+
+    def addPath(path:String, tree:MutableFile.Tree):Tree = {
+      val p = path.split("/").toList
+      add(p, tree)
+    }
+
+  }
 
   class BinaryFile(val arr:Array[Int]) extends MutableFile:
     def toImmutable = File.BinaryFile(arr.clone)
@@ -251,6 +419,11 @@ case class Commit(parents: Seq[Commit], tree:File.Tree, author:String, comment:S
 
   @scala.annotation.tailrec
   final def ^(i:Int):Commit = if i <= 0 || parents.isEmpty then this else parents.head.^(i - 1)
+
+  /** Finds a common ancestor that no other common ancestor has in its parentage */
+  def commonAncestor(other:Commit):Option[Commit] = 
+    val combined = (ancestors & other.ancestors)
+    combined.find(c => !combined.exists(cc => cc.ancestors.contains(c)))
 }
 
 object Commit {
@@ -282,9 +455,22 @@ enum Ref:
   */
 case class Remote(name:String, url:String, refs:Set[Ref])
 
-case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree) {
+case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree, authorName:String = "Unkown author", authorEmail:String = "unknown@example.com") {
 
-  def checkout(ref:Ref):Git = this.copy(head = ref)
+  /** Whether there are any uncommitted changes in the index */
+  def uncommittedChanges:Boolean = index != head.commit.tree
+
+  /** A hacky way of seeing if a git switch would lose changes from the index. */
+  def lossyChangesTo(ref:Ref):Boolean = uncommittedChanges && head.commit != ref.commit
+
+  def checkout(ref:Ref):Git = 
+    if head.commit == ref.commit then 
+      // Preserve the index if we're switching within refs on the same commit.
+      // This is a little hacky.
+      this.copy(head = ref)
+    else 
+      // Changing to a different commit, we update the index
+      this.copy(head = ref, index = ref.commit.tree)
 
   def switch(name:String):Git = checkout(branches(name))
 
@@ -343,15 +529,21 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
 
   def addAll(t:File.Tree) = this.copy(index = t)
 
-  def commit(author:String, message:String, time:Double) = {
+  def add(path:List[String], f:File) = this.copy(index = index.add(path, f))
+
+  def commit(author:String, message:String, time:Double):Git = {
     head match {
       case Ref.Branch(name, c) => 
         val newC = Commit(if c == Commit.Empty then Seq.empty else Seq(c), index, author, message, time)
-        this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC), index = File.Tree(Map.empty))
+        this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC))
       case _ => 
         throw GitException.CommitException("Can't commit in this checkout state")
     }
   }
+
+  def currentAuthor = s"$authorName <$authorEmail>"
+
+  def commit(message:String, time:Double):Git = commit(currentAuthor, message, time)
 
   def headAsDetached = head match {
     case Ref.Branch(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)

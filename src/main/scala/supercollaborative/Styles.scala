@@ -56,7 +56,7 @@ object Styles {
         |""".stripMargin)
     
     styleSuite.addGlobalRules(
-      """@import url(https://fonts.googleapis.com/css?family=Fira+Mono|Fira+Sans|Lato|Playfair+Display:ital@1);
+      """@import url(https://fonts.googleapis.com/css?family=Fira+Mono&family=Fira+Sans&family=Lato:wght@400;700&family=Playfair+Display:ital@1);
         |
         |body {
         |  font-family: 'Lato', sans-serif;

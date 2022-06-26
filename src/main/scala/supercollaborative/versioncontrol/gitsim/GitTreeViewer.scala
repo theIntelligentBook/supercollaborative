@@ -184,6 +184,31 @@ case class SelectableHDAG(refs:Seq[Ref]) extends VHtmlComponent {
 
 }
 
+/** Displays a gir graph horizontally, allowing elements to be selected */
+case class MergeHDAG(refs:Seq[Ref], from:Ref, to:Ref) extends VHtmlComponent {
+
+  lazy val commits = layoutRefs(refs)
+  val commonAncestor = from.commit.commonAncestor(to.commit)
+  val highlight = commonAncestor.toSet + from.commit + to.commit
+
+  def render = {
+    <.div(^.cls := CodeStyle.horizontalCommitDAG.className, 
+      HorizontalBranch(commits, refs, HorizontalBranchConfig(
+        10, 200, 150,
+        label = { case (c, (x, y)) => 
+          SVG.text(^.cls := "commit-label hash-only", ^.attr("x") := x, ^.attr("y") := y - 20, 
+            if c == Commit.Empty then "(empty)" else c.hash
+          )
+        },
+        commitClass = (c) => if highlight.contains(c) then "highlight" else "fade",
+        lineClass = (c, p) => "fade",
+        onClick = (c) => ()
+      ))
+    )
+  }
+
+}
+
 
 case class BranchHistoryAndTree(branch:Ref.Branch, height: Int) extends VHtmlComponent {
 
@@ -207,6 +232,48 @@ case class BranchHistoryAndTree(branch:Ref.Branch, height: Int) extends VHtmlCom
       )
     ),
     MorphingTreeViewer()(selected.tree, height)
+  )
+
+}
+
+case class HistoryAndTree(git:Git, height: Int, maxHistoryHeight: Int) extends VHtmlComponent {
+
+  enum Sel:
+    case Comm(c:Commit)
+    case Index
+  
+  var selected = if git.index == git.head.commit.tree then Sel.Comm(git.head.commit) else Sel.Index
+
+  val laidOut = temporalTopological(Seq(git.head.commit))
+
+  def select(c:Sel):Unit = 
+    selected = c
+    rerender()
+
+  def render = <.div(^.cls := CodeStyle.history.className, 
+    <.div(^.cls := "history", ^.attr("style") := s"max-height: ${maxHistoryHeight}px; overflow-y: auto;",
+      for c <- laidOut if c != Commit.Empty yield <.button(
+        ^.cls := (if Sel.Comm(c) == selected then "history-row selected" else "history-row"), 
+        ^.onClick --> select(Sel.Comm(c)),
+        <.span(^.cls := "hash", c.hash),
+        <.span(^.cls := "author", c.author),
+        <.span(^.cls := "comment", c.comment),
+        <.span(^.cls := "date", (new Date(c.time)).toLocaleString),
+      ),
+      if git.index != git.head.commit.tree then 
+        Some(<.button(
+          ^.cls := (if Sel.Index == selected then "history-row selected" else "history-row"),
+          ^.onClick --> select(Sel.Index),
+          <.span(^.cls := "hash"),
+          <.span(^.cls := "author"),
+          <.span(^.cls := "index", "Uncommited changes (index)"),
+        ))
+      else None
+    ),
+    selected match {
+      case Sel.Comm(c) => MorphingTreeViewer()(c.tree, height)
+      case Sel.Index => MorphingTreeViewer()(git.index, height)
+    }
   )
 
 }
