@@ -81,6 +81,7 @@ object Common {
   )
 
   def marked(text: => String) = markdown.Updatable()(() => text)
+  def markedF(text: String) = markdown.Fixed(text)
 
   /** Circuits Up! Logo */
   def symbol = {

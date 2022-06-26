@@ -299,6 +299,7 @@ object File:
 
     def find(path:List[String]):Option[File] = {
       path match {
+        case "." :: Nil => Some(this)
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.find(rest)
@@ -313,6 +314,11 @@ object File:
 
     def add(path:List[String], f:File):Tree = {
       path match {
+        case "." :: Nil =>
+          f match {
+            case addTree:File.Tree => Tree(files ++ addTree.files)
+            case _ => throw GitException.FileException("Tried to add non-directory as .")
+          }
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.add(rest, f)
@@ -354,6 +360,7 @@ object MutableFile {
 
     def find(path:List[String]):Option[MutableFile] = {
       path match {
+        case "." :: Nil => Some(this)
         case dir :: rest if rest.nonEmpty && files.contains(dir) => 
           files(dir) match {
             case t:Tree => t.find(rest)
@@ -365,6 +372,33 @@ object MutableFile {
     }
 
     def findPath(path:String):Option[MutableFile] = find(path.split("/").toList)
+
+    def add(path:List[String], f:MutableFile):Tree = {
+      path match {
+        case "." :: Nil =>
+          f match {
+            case addTree:MutableFile.Tree => files.addAll(addTree.files); this
+            case _ => throw GitException.FileException("Tried to add non-directory as .")
+          }
+        case dir :: rest if rest.nonEmpty && files.contains(dir) => 
+          files(dir) match {
+            case t:MutableFile.Tree => t.add(rest, f); this
+            case _ => throw GitException.FileException("Not a directory: " + dir)
+          }
+        case dir :: rest if rest.nonEmpty => 
+          val t = Tree(mutable.Map.empty)
+          t.add(rest, f)
+          files(dir) = t
+          this
+        case name :: _ => files(name) = f; this
+        case _ => throw GitException.FileException("Tried to add without a path")
+      }
+    }
+
+    def addPath(path:String, tree:MutableFile.Tree):Tree = {
+      val p = path.split("/").toList
+      add(p, tree)
+    }
 
   }
 
@@ -421,9 +455,22 @@ enum Ref:
   */
 case class Remote(name:String, url:String, refs:Set[Ref])
 
-case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree) {
+case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], index:File.Tree, authorName:String = "Unkown author", authorEmail:String = "unknown@example.com") {
 
-  def checkout(ref:Ref):Git = this.copy(head = ref)
+  /** Whether there are any uncommitted changes in the index */
+  def uncommittedChanges:Boolean = index != head.commit.tree
+
+  /** A hacky way of seeing if a git switch would lose changes from the index. */
+  def lossyChangesTo(ref:Ref):Boolean = uncommittedChanges && head.commit != ref.commit
+
+  def checkout(ref:Ref):Git = 
+    if head.commit == ref.commit then 
+      // Preserve the index if we're switching within refs on the same commit.
+      // This is a little hacky.
+      this.copy(head = ref)
+    else 
+      // Changing to a different commit, we update the index
+      this.copy(head = ref, index = ref.commit.tree)
 
   def switch(name:String):Git = checkout(branches(name))
 
@@ -482,15 +529,21 @@ case class Git(objects:Set[Obj], refs:Set[Ref], head:Ref, remotes:Set[Remote], i
 
   def addAll(t:File.Tree) = this.copy(index = t)
 
-  def commit(author:String, message:String, time:Double) = {
+  def add(path:List[String], f:File) = this.copy(index = index.add(path, f))
+
+  def commit(author:String, message:String, time:Double):Git = {
     head match {
       case Ref.Branch(name, c) => 
         val newC = Commit(if c == Commit.Empty then Seq.empty else Seq(c), index, author, message, time)
-        this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC), index = File.Tree(Map.empty))
+        this.copy(refs = refs - Ref.Branch(name, c) + Ref.Branch(name, newC), head = Ref.Branch(name, newC))
       case _ => 
         throw GitException.CommitException("Can't commit in this checkout state")
     }
   }
+
+  def currentAuthor = s"$authorName <$authorEmail>"
+
+  def commit(message:String, time:Double):Git = commit(currentAuthor, message, time)
 
   def headAsDetached = head match {
     case Ref.Branch(n, c) => Ref.NamedDetached(s"HEAD ($n)", c)

@@ -27,13 +27,13 @@ object CodeStyle {
     |""".stripMargin
   ).modifiedBy(
     //" .history" -> "display: flex; flex-direction: column",
-    " .history .history-row" -> "border: none; text-align: left; background:none; width: 100%; display: grid; grid-template-columns: 180px 300px 1fr 250px; align-items: center;",
+    " .history .history-row" -> "border: none; text-align: left; background:none; width: 100%; display: grid; grid-template-columns: 1fr 2fr 3fr 1fr; align-items: center;",
     " .history .history-row.selected" -> "background: #cdf;",
     " .history .history-row:hover" -> "background: #def;",
-    " .history .history-row .hash" -> "color: #555; font-family: monospace; margin-right: 10px;",
-    " .history .history-row .author" -> "width: 300px; display: inline-flex; margin-right: 10px;",
+    " .history .history-row .hash" -> "color: #555; font-size: 80%; font-family: monospace; margin-right: 10px;",
+    " .history .history-row .author" -> "max-width: 300px; display: inline-flex; margin-right: 10px;",
     " .history .history-row .comment" -> "display: inline-flex; margin-right: 10px;",
-    " .history .history-row .date" -> "font-size: 24px;",
+    " .history .history-row .date" -> "font-size: 80%; text-align: right;",
   ).register()
 
   val selectorAndViewer = Styling(
@@ -50,6 +50,10 @@ object CodeStyle {
       " .fileList .fileSelector " -> "background: none; border: none; text-align: left; padding: 0 5px; width: 100%;",
       " .fileList .fileSelector:hover " -> "background: #def;",
       " .fileList .fileSelector.selected " -> "background: #cdf;",
+      " .fileList .fileSelector.untracked::after " -> "content: 'U'; float:right; color: green;",
+      " .fileList .fileSelector.untracked " -> "color: green;",
+      " .fileList .fileSelector.modified::after " -> "content: 'M'; float:right; color: orange;",
+      " .fileList .fileSelector.modified " -> "color: orange;",
       " .fileViewer" -> "padding: 5px; margin: 0; flex: auto; display: flex; flex-direction: column;",
       " .fileViewer .viewer-breadcrumbs" -> "flex: 0; border-bottom: 1px solid #f0f0f0; font-size: 18px; padding: 3px; background: #fafafa;",
       " .fileViewer .viewer-breadcrumbs .viewer-breadcrumb" -> "color: #444;",
@@ -114,6 +118,45 @@ object CodeStyle {
   |""".stripMargin
   ).modifiedBy(
     " .chunk" -> "display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px dashed #aaa;",
+  ).register()
+
+  val commandBlock = Styling("""
+  |display: flex;
+  |flex-wrap: wrap;
+  |align-items: stretch;
+  |margin: 1em;
+  |""".stripMargin
+  ).modifiedBy(
+    " .sh" -> "font-family: 'Fira Mono'; color: white; background-color: #444; line-height: 1.5; padding: 10px; ",
+    " .execute" -> "flex: 0; border-radius: 0 5px 5px 0;",
+    " :first-child" -> "border-radius: 5px 0 0 5px;",
+    " input.sh" -> "border: none;",
+  ).register()
+
+  val gitToolbar = Styling("""
+  |background: #f6f6f6;
+  |padding: 10px;
+  |""".stripMargin).modifiedBy(
+    " button.active" -> "background: #444; color: white;",
+    " .branch-indicator" -> "margin-left: 2em;"
+
+  ).register()
+
+  val editorDiff = Styling(
+    """
+      |
+      |""".stripMargin
+    ).modifiedBy(
+      " .deleted" -> "background-color: #c88;  display: inline-block; width: 100%; height: 0; padding: 1px;",
+      " .added" ->  "background-color: #8c8; display: inline-block; width: 100%;",
+  ).register()
+
+  /** Style used by the git challenge to let the left side scroll and the right side display a fixed UI */
+  val gitChallengeSplit = Styling("""
+  |display: grid;
+  |grid-template-columns: 1fr 750px;
+  |""".stripMargin).modifiedBy(
+    " .instructions" -> "height: 900px; overflow-y: scroll;"
   ).register()
 
 }

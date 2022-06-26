@@ -1,5 +1,6 @@
 package supercollaborative.versioncontrol.gitsim
 
+import com.wbillingsley.veautiful.Update
 import com.wbillingsley.veautiful.html.*
 import org.scalajs.dom
 import org.scalajs.dom.HTMLElement
@@ -16,21 +17,33 @@ object JSCodejar extends js.Object:
 object CodeJar:
   def apply(element:HTMLElement)(highlight: js.Dynamic => Unit) = JSCodejar(element, highlight)
 
-case class CodeJarEditor(name:String)(val initialText:String, highlight: String => Option[String] = { _ => None }) extends VHtmlNode {
+case class CodeJarFileEditor(file:MutableFile.TextFile)(highlight: String => Option[String] = { _ => None }) extends VHtmlNode with Update {
 
     export structure.attach
     export structure.detach
     export structure.domNode
 
     val structure = <.div(^.cls := CodeStyle.styling.className,
-      initialText,
+      file.text
     )
+
+    private var editor:Option[js.Dynamic] = None
+
+    override def update() = reload()
+
+    def reload():Unit = 
+      for e <- editor do 
+        if e.textContent.asInstanceOf[String] != file.text then e.updateCode(file.text)
 
     override def afterAttach():Unit = {
       for n <- domNode do
-        val editor = CodeJar(n) { editor => 
-          for replace <- highlight(editor.textContent.asInstanceOf[String]) do editor.innerHTML = replace          
-        }
+        Some(CodeJar(n) { editor => 
+          this.editor = Some(editor)
+          val text = editor.textContent.asInstanceOf[String]
+          if file.text != text then
+            file.text = text
+            for replace <- highlight(text) do editor.innerHTML = replace          
+        })
       
     }
   
