@@ -61,7 +61,7 @@ case class EditSuite(tree:MutableFile.Tree)(config: EditSuiteConfig) extends VHt
           case CompareResult.Left(c) => s"<span class='deleted' />"
           case CompareResult.Both(c) => s"<span class='both' >$c\n</span>"
           case CompareResult.Right(c) => s"<span class='added' >$c\n</span>"
-        }).mkString
+        }).mkString + "<div class='eof' >\n</div>"
     },
 
     entryClass = { (path, f) =>
