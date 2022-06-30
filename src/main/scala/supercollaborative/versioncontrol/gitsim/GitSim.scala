@@ -1,6 +1,7 @@
 package supercollaborative.versioncontrol.gitsim
 
 import scala.util.Failure
+import scala.collection.mutable
 
 // A simple LCS finder based on memoisation of matches in the sequences
 // Not the most efficient, but we're only dealing with short sequences.
@@ -106,8 +107,7 @@ def threeWayChunk[T](aa:Seq[T], orig:Seq[T], bb:Seq[T]):Seq[(Seq[T], Seq[T], Seq
   // To help with chunking, we keep three modes
   enum Mode:
     case Unchanged // All three files match
-    case Matching // A and B match, but not the original
-    case Nonmatching // All other cases
+    case Changed // All other cases
 
   import CompareResult.*
   import Mode.*
@@ -127,68 +127,68 @@ def threeWayChunk[T](aa:Seq[T], orig:Seq[T], bb:Seq[T]):Seq[(Seq[T], Seq[T], Seq
         currentChunk = (Buffer(i), Buffer(i), Buffer(i))
     case Both(Left(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Matching then 
+      if mode == Changed then 
         o.append(i)
       else 
-        mode = Matching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer.empty, Buffer(i), Buffer.empty)
     case Both(Right(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Matching then 
+      if mode == Changed then 
         a.append(i)
         b.append(i)
       else 
-        mode = Matching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer(i), Buffer.empty, Buffer(i))
     case Left(Both(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         a.append(i) // For a's changes, we only add to a. We deal with orig in b's changes
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
     case Left(Left(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         () // Do nothing. For a's changes, we only add to a. We deal with orig in b's changes
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
     case Left(Right(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         a.append(i) 
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer(i), Buffer.empty, Buffer.empty)
     case Right(Both(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         o.append(i) // For b's changes, we update orig and b
         b.append(i)
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer.empty, Buffer(i), Buffer(i))
     case Right(Left(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         o.append(i) // For b's changes, we update orig and b
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer.empty, Buffer.empty, Buffer.empty)
     case Right(Right(i)) => 
       val (a, o, b) = currentChunk
-      if mode == Nonmatching then 
+      if mode == Changed then 
         b.append(i) 
       else 
-        mode = Nonmatching
+        mode = Changed
         chunks.append((a.toSeq, o.toSeq, b.toSeq))
         currentChunk = (Buffer.empty, Buffer.empty, Buffer(i))
   }
@@ -199,6 +199,29 @@ def threeWayChunk[T](aa:Seq[T], orig:Seq[T], bb:Seq[T]):Seq[(Seq[T], Seq[T], Seq
   chunks.toSeq
 }
 
+/** Attempts a three-way merge of some text, and formats a merge result */
+def mergeResult(aa:String, orig:String, bb:String):(Boolean, String) = {
+  val threeWay = threeWayChunk(aa.split("\n").map(_.stripTrailing), orig.split("\n").map(_.stripTrailing), bb.split("\n").map(_.stripTrailing))
+
+  val buffer = mutable.StringBuilder()
+  var conflicts = false
+  for (a, o, b) <- threeWay do 
+    if a == b || b == o then 
+      buffer.append(a.mkString("\n"))
+      buffer.append("\n")
+    else if a == o then
+      buffer.append(b.mkString("\n"))
+      buffer.append("\n")
+    else
+      conflicts = true
+      buffer.append("<<<<<<<\n")
+      buffer.append(a.mkString("\n"))
+      buffer.append("\n=======\n")
+      buffer.append(b.mkString("\n"))
+      buffer.append("\n>>>>>>>\n")
+
+  (conflicts, buffer.toString)
+}
 
 // Takes a list of commits and sorts them to show in a git graph
 def temporalTopological(toAdd:Seq[Commit], sorted:List[Commit] = Nil):Seq[Commit] = 

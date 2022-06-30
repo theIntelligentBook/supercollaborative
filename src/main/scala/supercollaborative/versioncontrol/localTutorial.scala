@@ -613,8 +613,8 @@ lazy val localTutorial = Seq(
     To update your name and email address
 
     <pre class="sh">
-    git config author.name "Your Name"
-    git config author.email "youremail@example.com"
+    git config user.name "Your Name"
+    git config user.email "youremail@example.com"
     </pre>
 
     (Substituting in your name and email address, of course!)    
