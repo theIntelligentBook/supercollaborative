@@ -23,9 +23,10 @@ val toc:site.Toc = site.Toc(
   ),
   "Merges" -> site.add("vcs-merge",
     Alternative("Slides", Deck(() => mergesDeck))
+  ),
+  "Project hosting" -> site.add("vcs-hosts",
+    Alternative("Slides", Deck(() => hostsDeck))
   )
-
-
 )
 
 val intro = <.div(
