@@ -31,9 +31,7 @@ object Main {
       
       "1. Version Control" -> versioncontrol.toc,
 
-      "2. Containers and Virtual Machines" -> site.Toc(
-
-      ),
+      "2. Containers and Virtual Machines" -> containers.toc,
 
       "3. Build Systems" -> site.Toc(
 
