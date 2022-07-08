@@ -172,7 +172,7 @@ val containersDeck = DeckBuilder(1920, 1080)
     |
     |A bit of terminology:
     |
-    |* A **comtainer image** is like a snapshot of a file system. When you first create a container
+    |* A **container image** is like a snapshot of a file system. When you first create a container
     |  from the image, this will be what's on its disk.
     |
     |* From a container image, you can start one or more **containers** (running machines)
