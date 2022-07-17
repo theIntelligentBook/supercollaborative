@@ -33,39 +33,33 @@ object Main {
 
       "2. Containers and Virtual Machines" -> containers.toc,
 
-      "3. Build Systems" -> site.Toc(
+      "3. Build Systems & Testing" -> buildsystems.toc,
+
+      "4. Continuous Development" -> site.Toc(
 
       ),
 
-      "4. Testing" -> site.Toc(
+      "5. System Architecture" -> site.Toc(
 
       ),
 
-      "5. Continuous Development" -> site.Toc(
+      "6. Models and Diagrams" -> site.Toc(
 
       ),
 
-      "6. System Architecture" -> site.Toc(
+      "7. Logging and Debugging" -> site.Toc(
 
       ),
 
-      "7. Models and Diagrams" -> site.Toc(
+      "8. Deployment and Ops" -> site.Toc(
 
       ),
 
-      "8. Logging and Debugging" -> site.Toc(
+      "9. Social Implications" -> site.Toc(
 
       ),
 
-      "9. Deployment and Ops" -> site.Toc(
-
-      ),
-
-      "10. Social Implications" -> site.Toc(
-
-      ),
-
-      "11. User Centred Design" -> site.Toc(
+      "10. User Centred Design" -> site.Toc(
 
       ),
     )
