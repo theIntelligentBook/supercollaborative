@@ -139,4 +139,44 @@ dependencies {
 
 ---
 
+### A Simple JUnit 5 test
+
+```java
+package example;
+
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.*;
+
+public class FibonacciTest {
+    @Test
+    public void fib0() {
+        assertEquals(0, fibonacci(0));
+    }
+}
+```
+
+Notes: 
+
+* Tests are put in a class, typically ending "...Test" so that the runner can find them.
+* Test methods are annotated `@Test`. (A class can contain multiple tests.)
+* They contain a call to at least one assert method. Typically, these put the *expected* result first, then the call to test.  
+  (You can optionally put a message afterwards, but if possible try to name the test so it's clear ayway)
+
+---
+
+### Different kinds of assertion
+
+Most of the methods in [`org.junit.api.jupiter.Assertions`](https://junit.org/junit5/docs/5.8.1/api/org.junit.jupiter.api/org/junit/jupiter/api/Assertions.html) are well documented and self-explanatory, but here are a few notes:
+
+* `assertEquals(expected, value)` tests for equality
+* `assertEquals(double expected, double value, double delta)` is for floating point numbers.  
+  Rounding and calculation errors can easily make a floating point result *slightly* different than you expected, so testing
+  for exact equality is error prone. Instead we test that it is within an acceptable range (+/- delta) of the expected result.
+* `assertArrayEquals(expected, actual)` checks the contents of arrays. `assertEquals` would just check the *reference to the array*.
+* `assertIterableEquals(expected, actual)` checks the contents of iterable items (e.g. `List`s). 
+* `assertThrows(expectedType, executable)` can be used to verify that some code (typically a lambda) throws a particular exception
+
+---
+
 Still being written...
