@@ -33,7 +33,7 @@ object Main {
 
       "2. Containers and Virtual Machines" -> containers.toc,
 
-      "3. Build Systems & Testing" -> buildsystems.toc,
+      "3. Build Systems and Testing" -> buildsystems.toc,
 
       "4. Continuous Development" -> site.Toc(
 

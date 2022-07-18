@@ -564,6 +564,27 @@ Like Maven, Gradle lets you specify that some dependencies are scoped only to be
 
 ---
 
+### Gradle dependency types
+
+* Like Maven, Gradle has support for SNAPSHOT versions. However, it's terminology is a subtly different, calling them **Changing versions**.
+  If you want to ask Gradle to re-check for a changing version (rather than use the version it might have cached for 24h), pass the
+  `--refresh-dependencies` flag to your build. e.g. `gradle build --refresh-dependencies`
+
+* **Dynamic dependencies** are where you specify that you want the latest in a range of versions. e.g.  
+
+  ```java
+  dependencies {
+    implementation 'org.springframework:spring-web:5.+'
+  }
+  ```
+
+  asks for the most recent 5.x release
+
+* **Transitive dependencies** are the dependencies of your dependencies!  
+  These can become numerous (but perhaps not quite as explosively numerous as in the JavaScript community)
+
+---
+
 ### Multi-module builds
 
 * Suppose our project is going to have a client, and it will have a server. That's two executables
