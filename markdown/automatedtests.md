@@ -115,6 +115,8 @@ The tests will be run as part of a number of different tasks, but generally
 
 * `gradle test --tests SomeClass.someMethod` will run a specific test method in a class
 
+The test report (for JUnit 5) is typically generated in `build/reports/tests/test/index.html`
+
 ---
 
 ## JUnit Jupiter
@@ -179,4 +181,169 @@ Most of the methods in [`org.junit.api.jupiter.Assertions`](https://junit.org/ju
 
 ---
 
-Still being written...
+### `assertArrayEquals`
+
+This would fail:
+
+```java
+    @Test
+    public void arrayOfFibs() {
+        assertEquals(new int[] { 0, 1 }, new int[] { fibonacci(0), fibonacci(1) });
+    }
+```
+
+Although the arrays have the same values, two arrays (even if they contain the same values) are not "equal":
+
+```log
+org.opentest4j.AssertionFailedError: expected: [I@28e8dde3[[0, 1]] but was: [I@6d23017e[[0, 1]]
+```
+
+Instead we need to use:
+
+```java
+    @Test
+    public void arrayOfFibs() {
+        assertArrayEquals(new int[] { 0, 1 }, new int[] { fibonacci(0), fibonacci(1) });
+    }
+```
+
+---
+
+### `assertThrows`
+
+[`assertThrows`](https://junit.org/junit5/docs/5.8.1/api/org.junit.jupiter.api/org/junit/jupiter/api/Assertions.html#assertThrows(java.lang.Class,org.junit.jupiter.api.function.Executable)) has a method signature you might not be familiar with - it takes
+
+* `Class<T>`, in this case `IllegalArgumentException.class`
+* `Executable`, which is a *Single Abstract Method* (SAM) type. These are classes that have exactly one method left to implement, and
+  Java lets us write them as a lambda expression (a single inline anonymous function). e.g. 
+  `() -> fibonacci(-1)`
+
+```java
+    @Test
+    public void fibMinusOne() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            fibonacci(-1);
+        });
+    }
+```
+
+Scala programmers note: whereas Scala uses `=>` to define a lambda, Java uses `->`.
+
+---
+
+### Display names
+
+We can make our test reports more readable by including a display name with our tests
+
+```java
+    @DisplayName("The fibonacci sequence is started with [0, 1]")
+    @Test
+    public void arrayOfFibs() {
+        assertArrayEquals(new int[] { 0, 1 }, new int[] { fibonacci(0), fibonacci(1) });
+    }
+```
+
+
+---
+
+### Ignoring tests
+
+Sometimes we need to turn a test off temporarily. We can do this with the `@Disabled` annotation:
+
+```java
+    @Disabled
+    @Test
+    public void arrayOfFibs() {
+        assertArrayEquals(new int[] { 0, 1 }, new int[] { fibonacci(0), fibonacci(1) });
+    }
+```
+
+---
+
+### Assumptions
+
+Assumptions can be used if you have tests that should be run in one environment, but skipped in another. 
+
+This lets us do conditional execution of tests. The test gets *aborted* rather than *failed* if the assumption is not met.
+
+```java
+    @Test
+    public void arrayOfFibs() {
+        assumeEquals("TRUE", System.getProperty("RUN_LONG_TESTS"));
+        // A contrived example that assumes an inefficient implementation of fibonacci
+        assertEquals(1836311903, fibonacci(46));
+    }
+```
+
+---
+
+### Test set-up
+
+Sometimes, we might have set-up tasks we need to run before the tests are run.  
+e.g. if there's some test data we need to set up in a data structure.
+
+JUnit lets us define this set up code in methods annotated
+
+- `@BeforeAll` - if the method should be run once for a test class, before the set of the tests in that class are run (once per class).
+- `@BeforeEach` - if the method should be run before each test method in the class (once per method).
+
+Likewise, there are `@AfterAll` and `@AfterEach` annotations for "tear-down" methods.
+
+---
+
+## MUnit
+
+There are a lot of different testing libraries for different languages. MUnit is a test framework for the Scala language that is
+built on top of JUnit. This makes its concepts somewhat familiar.
+
+e.g. 
+
+```scala
+  test("it should calculate Roman Numerals correctly") {
+    assertEquals(roman(1), "I")
+    assertEquals(roman(3), "III")
+    assertEquals(roman(4), "IV")
+    assertEquals(roman(10), "X")
+    assertEquals(roman(104), "CIV")
+    assertEquals(roman(1900), "MCM")
+    assertEquals(roman(1988), "MCMLXXXVIII")
+  }
+```
+
+Although, being Scala, it follows different syntax conventions, the concepts of test classes and assertions are similar.
+
+---
+
+## What tests to write?
+
+So far, this has discussed the machinery of running tests. But what should we test?
+
+There's often an infinite domain of possible inputs. e.g. do we test *every* date?
+
+**Advice:** 
+
+We're trying to catch bugs. So, the tests we write are going to be (to an extent) determined by the sort of bugs we think could happen.
+
+One way of thinking about this is *equivalence classes*.
+
+---
+
+### Suppose we're testing birthdays...
+
+Which of these values might we care particularly about testing? (There is more than one right answer.)
+
+* 8 December 2008
+* 19 August 2011
+* 91 August 2011
+* 31 July 2011
+* 31 August 2011
+* 29 February 2012
+* 29 February 2011
+
+Another way of thinking about it:
+
+Tests are a specification by example of how your code should behave.
+
+
+
+
