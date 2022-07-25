@@ -35,9 +35,7 @@ object Main {
 
       "3. Build Systems and Testing" -> buildsystems.toc,
 
-      "4. Continuous Development" -> site.Toc(
-
-      ),
+      "4. Continuous Development" -> continuousdevelopment.toc,
 
       "5. System Architecture" -> site.Toc(
 
