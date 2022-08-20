@@ -39,9 +39,7 @@ object Main {
 
       "5. System Architecture" -> softwarearchitecture.toc,
 
-      "6. Models and Diagrams" -> site.Toc(
-
-      ),
+      "6. Models and Diagrams" -> modelling.toc,
 
       "7. Logging and Debugging" -> site.Toc(
 

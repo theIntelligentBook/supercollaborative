@@ -3,10 +3,14 @@ package supercollaborative
 import com.wbillingsley.veautiful.html._
 import com.wbillingsley.veautiful.doctacular._
 import com.wbillingsley.veautiful.templates.VSlides
+import com.wbillingsley.veautiful.templates.Sequencer
 
 given styleSuite:StyleSuite = StyleSuite()
 
 object Styles {
+
+  // Fixes bug where Mermaid diagrams on later slides would have their arrowheads made invisible
+  Sequencer.sequencerSlideStyle.addRules(Map(" defs" -> "visibility: visible"));
   
   val imageSlide = Styling(
     """position: relative;
