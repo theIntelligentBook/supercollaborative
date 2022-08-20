@@ -139,7 +139,7 @@ image: Colin Burnett
 
 ## TCP over ...?
 
-```
+<pre style="max-height: 800px; overflow-y: auto'">
 Network Working Group                                        D. Waitzman
 Request for Comments: 1149                                       BBN STC
                                                             1 April 1990
@@ -188,7 +188,7 @@ Discussion
    eradication.  Because IP only guarantees best effort delivery, loss
    of a carrier can be tolerated.  With time, the carriers are self-
 
-```
+</pre>
 
 ---
 
