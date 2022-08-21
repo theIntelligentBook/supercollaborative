@@ -13,6 +13,12 @@ val toc:site.Toc = site.Toc(
   ),
   "Sequence Diagrams" -> site.add("sequence-diagrams",
     Alternative("Slides", Deck(() => seqDiagramDeck))
+  ),
+  "State Machines" -> site.add("state-machines",
+    Alternative("Slides", Deck(() => stateDiagramDeck))
+  ),
+  "Design Patterns" -> site.add("design-patterns",
+    Alternative("Slides", Deck(() => designPatternsDeck))
   )
 )
 
