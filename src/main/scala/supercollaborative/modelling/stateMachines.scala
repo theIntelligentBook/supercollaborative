@@ -69,10 +69,10 @@ lazy val stateDiagramDeck = DeckBuilder(1920, 1080)
     |
     |""".stripMargin),
     codeAndMermaid("""|stateDiagram-v2
-                      |  [*] --> Frozen
-                      |  Frozen --> Thawed : defrost
-                      |  Thawed --> Cooked : cook
-                      |  Thawed --> Frozen : freeze
+                      |  Frozen --> Raw : defrost
+                      |  Raw --> Cooked : cook
+                      |  Raw --> Frozen : freeze
+                      |  [*] --> Raw
                       |  Cooked --> Eaten : eat
                       |  Eaten --> [*]
                       |""".stripMargin),
