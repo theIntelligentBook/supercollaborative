@@ -49,9 +49,7 @@ object Main {
 
       ),
 
-      "9. Social Implications" -> site.Toc(
-
-      ),
+      "9. Social Implications" -> implications.toc,
 
       "10. User Centred Design" -> site.Toc(
 
